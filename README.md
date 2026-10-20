@@ -14,23 +14,18 @@ academic decisions.
 
 ## Setup
 
-TODO: fill in environment and dependency setup (e.g. language/runtime version
-and how to install dependencies). Place the implementation under `code/`.
+
 
 ## How to run the core path
 
-TODO: fill in the command(s) to run the end-to-end pipeline once the code is
-implemented in `code/`.
+
 
 ## How to check the result
 
-TODO: fill in how to verify the output (e.g. what file/format is produced and
-how to confirm the result is correct).
 
 ## Example input and output
 
-TODO: add a sample course document under `sample_data/` and the expected brief
-output once the implementation is ready.
+
 
 ## Limitations
 
