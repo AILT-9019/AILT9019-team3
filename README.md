@@ -1,12 +1,4 @@
-# Academic Deadline Brief
-
-**Course:** AILT9019 · AI Literacy II — Project
-
-A small local tool that turns scattered course documents (syllabi, assignment
-briefs, announcements) into a **prioritized weekly academic brief**: upcoming
-tasks, deadlines, priorities, and deadline conflicts.
-
-> Pipeline: `Course documents → Information extraction → Structured tasks → Prioritization → Weekly Academic Brief`
+# AILT 9019 Group Project
 
 ## What the project does
 
