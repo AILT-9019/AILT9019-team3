@@ -2,7 +2,7 @@ AILT9019 Midterm Check — Repository Link
 =========================================
 
 Repository URL:
-https://github.com/<your-github-username>/academic-deadline-brief
+https://github.com/chankwankiu/AILT9019
 
 (Replace the URL above with your actual repository URL after the repo is
 created on GitHub, then re-upload this file inside the midterm ZIP.)
