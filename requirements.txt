@@ -1,0 +1,4 @@
+# Core reference path uses ONLY the Python standard library.
+# The following are optional, for reading richer document formats later:
+# pdfplumber>=0.11     # read PDF course documents
+# python-docx>=1.1     # read .docx course documents

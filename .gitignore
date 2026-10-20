@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated output (reproducible via `python src/pipeline.py`)
+data/sample_output/brief.json
+data/sample_output/brief_test.json
+
+# Video / large binaries (submit the mp4 inside the Moodle ZIP, not the repo)
+*.mp4

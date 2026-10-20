@@ -1,0 +1,14 @@
+AILT9019 Midterm Check — Repository Link
+=========================================
+
+Repository URL:
+https://github.com/<your-github-username>/academic-deadline-brief
+
+(Replace the URL above with your actual repository URL after the repo is
+created on GitHub, then re-upload this file inside the midterm ZIP.)
+
+Access for course staff:
+- Repository is Public, OR
+- Course team GitHub account(s) added as Collaborator(s).
+
+README explains setup, how to run the core path, and how to check the result.

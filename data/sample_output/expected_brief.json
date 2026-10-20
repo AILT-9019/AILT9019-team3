@@ -1,0 +1,16 @@
+{
+  "_comment": "Illustrative example of the brief structure produced by `python src/pipeline.py`. Priority labels depend on the run date (days_left), so they are examples only. The extracted tasks, ISO deadlines, task types, and conflict flags are stable across runs.",
+  "tasks": [
+    { "course": "AILT9019 — AI Literacy II", "task": "Week 4: Project Proposal due Friday 25 September 2026.", "deadline": "2026-09-25", "task_type": "Proposal", "priority": "High", "days_left": -25 },
+    { "course": "AILT9019 — AI Literacy II", "task": "Week 6: Draft literature review due Monday 12 October 2026.", "deadline": "2026-10-12", "task_type": "Review", "priority": "High", "days_left": -8 },
+    { "course": "AILT9019 — AI Literacy II", "task": "Week 8: Midterm check (ZIP submission) due Monday 26 October 2026.", "deadline": "2026-10-26", "task_type": "Submission", "priority": "High", "days_left": 6 },
+    { "course": "AILT9019 — AI Literacy II", "task": "A short peer review of another team's proposal is due Tuesday 27 October 2026.", "deadline": "2026-10-27", "task_type": "Review", "priority": "Medium", "days_left": 7 },
+    { "course": "AILT9019 — AI Literacy II", "task": "Week 10: Prototype demo due Friday 13 November 2026.", "deadline": "2026-11-13", "task_type": "Demo", "priority": "Low", "days_left": 24 },
+    { "course": "AILT9019 — AI Literacy II", "task": "Week 12: Final project report due Monday 30 November 2026.", "deadline": "2026-11-30", "task_type": "Report", "priority": "Low", "days_left": 41 },
+    { "course": "AILT9019 — AI Literacy II", "task": "The optional reflection task is due (date to be confirmed later).", "deadline": null, "task_type": "Reflection", "note": "deadline ambiguous or missing — flagged, not invented" }
+  ],
+  "deadline_conflicts": [
+    [ "Week 8: Midterm check (ZIP submission) due Monday 26 October 2026.", "A short peer review of another team's proposal is due Tuesday 27 October 2026." ]
+  ],
+  "counts": { "total": 7, "dated": 6, "flagged_missing": 1 }
+}
