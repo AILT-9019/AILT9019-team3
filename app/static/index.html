@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CourseBrief</title>
+  <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">CB</span>
+      <span>CourseBrief</span>
+    </div>
+    <div class="topbar-actions">
+      <button id="upload-button" class="button button-primary" type="button">Upload</button>
+      <button id="paste-button" class="button" type="button">Paste</button>
+    </div>
+  </header>
+
+  <main class="page">
+    <div id="status-bar" class="status-bar is-hidden" role="status"></div>
+
+    <section id="month-view" class="calendar-panel">
+      <div class="calendar-toolbar">
+        <div>
+          <h1 id="month-label" class="calendar-title"></h1>
+          <p class="muted calendar-subtitle">Click a date to expand that week.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button id="prev-month" class="icon-button" type="button" aria-label="Previous month">‹</button>
+          <button id="next-month" class="icon-button" type="button" aria-label="Next month">›</button>
+        </div>
+      </div>
+
+      <div class="weekday-row" aria-hidden="true">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+      <div id="month-grid" class="month-grid"></div>
+
+      <section id="undated-section" class="undated-section is-hidden">
+        <h2 class="section-title">Undated</h2>
+        <div id="undated-list" class="undated-list"></div>
+      </section>
+    </section>
+
+    <section id="week-view" class="calendar-panel is-hidden">
+      <div class="calendar-toolbar">
+        <div>
+          <button id="back-to-month" class="link-button" type="button">← Month</button>
+          <h1 id="week-label" class="calendar-title"></h1>
+        </div>
+        <div class="toolbar-actions">
+          <button id="prev-week" class="icon-button" type="button" aria-label="Previous week">‹</button>
+          <button id="next-week" class="icon-button" type="button" aria-label="Next week">›</button>
+        </div>
+      </div>
+
+      <div id="week-header" class="week-header"></div>
+      <div id="week-grid" class="week-grid"></div>
+
+      <section id="week-undated-section" class="undated-section is-hidden">
+        <h2 class="section-title">Undated</h2>
+        <div id="week-undated-list" class="undated-list"></div>
+      </section>
+    </section>
+  </main>
+
+  <div id="popover" class="popover is-hidden" role="dialog" aria-live="polite"></div>
+  <div id="toast" class="toast is-hidden" role="status"></div>
+
+  <div id="upload-modal" class="modal-backdrop is-hidden">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="upload-modal-title">
+      <h2 id="upload-modal-title">Upload course documents</h2>
+      <p class="muted">PDF, DOCX, TXT, Markdown. One document can contain multiple tasks.</p>
+      <label class="field">
+        <span>Course hint (optional)</span>
+        <input id="upload-course" type="text" placeholder="e.g. COMP3230">
+      </label>
+      <label class="field">
+        <span>Files</span>
+        <input id="upload-files" type="file" multiple accept=".pdf,.docx,.txt,.md,.markdown">
+      </label>
+      <div id="upload-results" class="upload-results"></div>
+      <div class="modal-actions">
+        <button id="upload-cancel" class="button" type="button">Cancel</button>
+        <button id="upload-submit" class="button button-primary" type="button">Upload</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="paste-modal" class="modal-backdrop is-hidden">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="paste-modal-title">
+      <h2 id="paste-modal-title">Paste course text</h2>
+      <p class="muted">Paste a syllabus, assignment brief, or announcement.</p>
+      <label class="field">
+        <span>Title (optional)</span>
+        <input id="paste-title" type="text" placeholder="e.g. Week 9 announcement">
+      </label>
+      <label class="field">
+        <span>Course hint (optional)</span>
+        <input id="paste-course" type="text" placeholder="e.g. COMP3230">
+      </label>
+      <label class="field">
+        <span>Text</span>
+        <textarea id="paste-text" rows="10" placeholder="Paste the text here…"></textarea>
+      </label>
+      <div id="paste-count" class="muted small"></div>
+      <div class="modal-actions">
+        <button id="paste-cancel" class="button" type="button">Cancel</button>
+        <button id="paste-submit" class="button button-primary" type="button">Paste</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="text-modal" class="modal-backdrop is-hidden">
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="text-modal-title">
+      <h2 id="text-modal-title">Source text</h2>
+      <pre id="text-modal-body" class="source-text"></pre>
+      <div class="modal-actions">
+        <button id="text-modal-close" class="button" type="button">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

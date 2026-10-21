@@ -1,0 +1,218 @@
+from __future__ import annotations
+
+import re
+from datetime import date, timedelta
+
+from dateutil import parser as date_parser
+
+from app.config import get_settings
+from app.schemas import DateConfidence, ExtractedTask, TaskType
+
+MONTHS = (
+    "jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|"
+    "january|february|march|april|june|july|august|september|october|november|december"
+)
+_EXPLICIT_DATE_PATTERNS = (
+    r"\d{4}-\d{2}-\d{2}",
+    r"\d{4}/\d{1,2}/\d{1,2}",
+    rf"\b\d{{1,2}}(?:st|nd|rd|th)?\s+(?:{MONTHS})\b",
+    rf"\b(?:{MONTHS})\s+\d{{1,2}}\b",
+    r"\b\d{1,2}/\d{1,2}/\d{2,4}\b",
+    r"\b\d{1,2}\.\d{1,2}\.\d{2,4}\b",
+)
+
+
+def coerce_payload(payload: object, course_hint: str | None) -> list[dict]:
+    if isinstance(payload, list):
+        payload = {"tasks": payload}
+    if not isinstance(payload, dict):
+        raise TypeError("LLM output must be a JSON object or list")
+    raw_tasks = payload.get("tasks")
+    if not isinstance(raw_tasks, list):
+        raise TypeError("LLM output must contain a tasks array")
+
+    tasks: list[dict] = []
+    for raw in raw_tasks:
+        if not isinstance(raw, dict):
+            continue
+        task = _coerce_task(raw, course_hint)
+        if task is not None:
+            tasks.append(task)
+    return tasks
+
+
+def normalize_tasks(
+    tasks: list[ExtractedTask],
+    *,
+    course_hint: str | None,
+) -> list[ExtractedTask]:
+    settings = get_settings()
+    min_date = settings.semester_start - timedelta(days=30)
+    max_date = settings.semester_end + timedelta(days=30)
+    normalized: list[ExtractedTask] = []
+
+    for task in tasks:
+        data = task.model_dump()
+        course_name = (task.course_name or "").strip() or course_hint or "Unknown course"
+        data["course_name"] = course_name[:120]
+
+        if task.date_confidence == DateConfidence.exact:
+            if task.due_date is None or not (min_date <= task.due_date <= max_date):
+                data.update(
+                    {
+                        "date_confidence": DateConfidence.unknown,
+                        "due_date": None,
+                        "due_range_start": None,
+                        "due_range_end": None,
+                        "ambiguity_reason": "Deadline is outside the semester window.",
+                    }
+                )
+            elif _looks_ambiguous(task.source_quote):
+                data.update(
+                    {
+                        "date_confidence": DateConfidence.unknown,
+                        "due_date": None,
+                        "due_range_start": None,
+                        "due_range_end": None,
+                        "ambiguity_reason": (
+                            "The source quote does not contain an explicit date; "
+                            "no specific date is assumed."
+                        ),
+                    }
+                )
+        elif task.date_confidence == DateConfidence.range:
+            if (
+                task.due_range_start is None
+                or task.due_range_end is None
+                or task.due_range_start < min_date
+                or task.due_range_end > max_date
+            ):
+                data.update(
+                    {
+                        "date_confidence": DateConfidence.unknown,
+                        "due_date": None,
+                        "due_range_start": None,
+                        "due_range_end": None,
+                        "ambiguity_reason": "Deadline range is outside the semester window.",
+                    }
+                )
+            elif (task.due_range_end - task.due_range_start).days > 21:
+                data["ambiguity_reason"] = (
+                    (task.ambiguity_reason or "Estimated deadline.")
+                    + " The estimated window is wider than three weeks."
+                )
+
+        normalized.append(ExtractedTask.model_validate(data))
+
+    return _dedupe(normalized)
+
+
+def _coerce_task(raw: dict, course_hint: str | None) -> dict | None:
+    title = _text(raw.get("title"))[:200]
+    if not title:
+        return None
+
+    quote = _text(raw.get("source_quote"))[:1000] or title
+    course_name = _text(raw.get("course_name"))[:120] or (course_hint or "Unknown course")
+    description = _text(raw.get("description"))[:2000] or None
+
+    task_type_raw = _text(raw.get("task_type")).lower()
+    valid_types = {item.value for item in TaskType}
+    task_type = task_type_raw if task_type_raw in valid_types else TaskType.other.value
+
+    due_date = _coerce_date(raw.get("due_date"))
+    range_start = _coerce_date(raw.get("due_range_start"))
+    range_end = _coerce_date(raw.get("due_range_end"))
+    confidence = _text(raw.get("date_confidence")).lower()
+
+    if confidence not in {item.value for item in DateConfidence}:
+        if due_date is not None:
+            confidence = DateConfidence.exact.value
+        elif range_start is not None and range_end is not None:
+            confidence = DateConfidence.range.value
+        else:
+            confidence = DateConfidence.unknown.value
+
+    if confidence == DateConfidence.exact.value:
+        if due_date is None:
+            confidence = (
+                DateConfidence.range.value
+                if range_start is not None and range_end is not None
+                else DateConfidence.unknown.value
+            )
+        else:
+            range_start = range_end = None
+    if confidence == DateConfidence.range.value:
+        if range_start is None or range_end is None or range_start > range_end:
+            confidence = DateConfidence.unknown.value
+        else:
+            due_date = None
+    if confidence == DateConfidence.unknown.value:
+        due_date = range_start = range_end = None
+
+    return {
+        "course_name": course_name,
+        "title": title,
+        "description": description,
+        "task_type": task_type,
+        "due_date": due_date,
+        "due_range_start": range_start,
+        "due_range_end": range_end,
+        "date_confidence": confidence,
+        "ambiguity_reason": _text(raw.get("ambiguity_reason"))[:500] or None,
+        "source_quote": quote,
+    }
+
+
+def _coerce_date(value: object) -> date | None:
+    if value is None or value == "":
+        return None
+    if isinstance(value, date):
+        return value
+    text = str(value).strip()
+    try:
+        return date.fromisoformat(text)
+    except ValueError:
+        pass
+    try:
+        return date_parser.parse(text, fuzzy=False).date()
+    except (ValueError, OverflowError, TypeError):
+        return None
+
+
+def _text(value: object) -> str:
+    return str(value).strip() if value is not None else ""
+
+
+def _looks_ambiguous(quote: str) -> bool:
+    lower = quote.lower()
+    for pattern in _EXPLICIT_DATE_PATTERNS:
+        if re.search(pattern, lower, flags=re.IGNORECASE):
+            return False
+    return True
+
+
+def _dedupe(tasks: list[ExtractedTask]) -> list[ExtractedTask]:
+    seen: dict[tuple[str, str, str], ExtractedTask] = {}
+    for task in tasks:
+        key = (
+            task.course_name.lower(),
+            _normalize_title(task.title),
+            _date_key(task),
+        )
+        existing = seen.get(key)
+        if existing is None or len(task.description or "") > len(existing.description or ""):
+            seen[key] = task
+    return list(seen.values())
+
+
+def _normalize_title(title: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", title.lower()).strip()
+
+
+def _date_key(task: ExtractedTask) -> str:
+    if task.due_date is not None:
+        return task.due_date.isoformat()
+    if task.due_range_start is not None and task.due_range_end is not None:
+        return f"{task.due_range_start.isoformat()}..{task.due_range_end.isoformat()}"
+    return "unknown"
