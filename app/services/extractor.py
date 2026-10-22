@@ -17,12 +17,21 @@ from app.schemas import (
     TaskType,
 )
 from app.services import llm_client, prompts
+from app.services.deduplicator import build_duplicate_groups
 from app.services.normalizer import (
     MONTHS,
     coerce_payload,
+    merge_subtasks,
     normalize_tasks,
 )
-from app.storage import get_text, get_upload, replace_tasks, set_extraction
+from app.storage import (
+    get_text,
+    get_upload,
+    read_state,
+    replace_tasks,
+    set_duplicate_groups,
+    set_extraction,
+)
 
 CHUNK_SIZE = 6000
 MAX_CHUNKS = 30
@@ -65,7 +74,7 @@ def extract_upload(upload_id: str) -> None:
         else:
             raise ExtractionError(f"Unknown EXTRACTOR_MODE: {settings.extractor_mode}")
 
-        normalized = normalize_tasks(extracted, course_hint=upload.course_hint)
+        normalized = merge_subtasks(normalize_tasks(extracted, course_hint=upload.course_hint))
         records = [
             TaskRecord(
                 id=f"{upload_id}_{index:02d}",
@@ -75,6 +84,11 @@ def extract_upload(upload_id: str) -> None:
             for index, task in enumerate(normalized, start=1)
         ]
         replace_tasks(upload_id, records)
+        try:
+            groups, _ = build_duplicate_groups(read_state().tasks)
+            set_duplicate_groups(groups)
+        except Exception:  # noqa: BLE001 - display-only grouping must not fail extraction
+            set_duplicate_groups({})
         set_extraction(
             upload_id,
             ExtractionStatus.succeeded,

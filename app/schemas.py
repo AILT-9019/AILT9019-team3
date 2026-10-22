@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -36,6 +37,13 @@ class ExtractionStatus(str, Enum):
     failed = "failed"
 
 
+class Subtask(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    label: str = Field(min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=1000)
+
+
 class ExtractedTask(BaseModel):
     """Fields returned by the LLM; also the persisted task shape."""
 
@@ -51,6 +59,7 @@ class ExtractedTask(BaseModel):
     date_confidence: DateConfidence
     ambiguity_reason: str | None = Field(default=None, max_length=500)
     source_quote: str = Field(min_length=1, max_length=1000)
+    subtasks: list[Subtask] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_deadline(self) -> ExtractedTask:
@@ -97,10 +106,16 @@ class UploadRecord(BaseModel):
     extraction: ExtractionInfo = Field(default_factory=ExtractionInfo)
 
 
+class DuplicateGroup(BaseModel):
+    task_ids: list[str] = Field(min_length=2)
+    source: Literal["ai", "exact"] = "ai"
+
+
 class DbState(BaseModel):
     schema_version: int = SCHEMA_VERSION
     uploads: dict[str, UploadRecord] = Field(default_factory=dict)
     tasks: list[TaskRecord] = Field(default_factory=list)
+    duplicate_groups: dict[str, DuplicateGroup] = Field(default_factory=dict)
 
 
 class ExtractionResponse(BaseModel):

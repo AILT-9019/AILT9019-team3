@@ -1,0 +1,13 @@
+COMP3230 Operating Systems
+Course Syllabus, Semester 1, 2026-27
+
+Instructor: Dr. Example
+Office hours: Tuesday 14:00-15:00
+
+Assessment
+- Assignment 1: Processes and shells. Weight 20%. Due 24 October 2026 at 23:59.
+- Assignment 2: Pipes and signals. Weight 20%. Due 7 November 2026 at 23:59.
+- Final examination: Weight 60%. Scheduled for 4 December 2026.
+
+Late policy
+Late submissions lose 10% per day. No submission is accepted after three days.

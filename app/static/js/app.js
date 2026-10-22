@@ -8,7 +8,6 @@ import {
 } from "./api.js";
 import {
   addDays,
-  conflictDates,
   formatLongDate,
   formatMonth,
   formatShortDate,
@@ -71,11 +70,12 @@ const els = {
   textModalClose: $("#text-modal-close"),
 };
 
-let state = { schema_version: 1, uploads: {}, tasks: [] };
+let state = { schema_version: 1, uploads: {}, tasks: [], duplicate_groups: {} };
 let view = "month";
 let currentMonth = startOfMonth(new Date());
 let currentWeek = startOfWeek(new Date());
 let popoverPinned = false;
+let popoverTarget = null;
 let hideTimer = null;
 let statusTimer = null;
 let toastTimer = null;
@@ -100,6 +100,26 @@ function priorityClass(task) {
   return `priority-${priorityFor(task).bucket.toLowerCase()}`;
 }
 
+function displayTasks(tasks = state.tasks) {
+  const tasksById = new Map(tasks.map((task) => [task.id, task]));
+  const groupById = new Map();
+  for (const [primaryId, group] of Object.entries(state.duplicate_groups || {})) {
+    const ids = Array.isArray(group.task_ids) ? group.task_ids : [];
+    const sources = ids.map((id) => tasksById.get(id)).filter(Boolean);
+    if (sources.length < 2) continue;
+    const representative = tasksById.get(primaryId) || sources[0];
+    for (const source of sources) {
+      groupById.set(source.id, { representative, sources });
+    }
+  }
+  return tasks.flatMap((task) => {
+    const group = groupById.get(task.id);
+    if (!group) return [task];
+    if (group.representative.id !== task.id) return [];
+    return [{ ...group.representative, sourceTasks: group.sources }];
+  });
+}
+
 function taskChip(task) {
   const chip = document.createElement("div");
   chip.className = [
@@ -110,7 +130,8 @@ function taskChip(task) {
     .filter(Boolean)
     .join(" ");
   chip.textContent = `${task.course_name} · ${task.title}`;
-  chip.title = `${task.title} — ${taskDueLabel(task)}`;
+  const sourceCount = task.sourceTasks?.length || 1;
+  chip.title = `${task.title} — ${taskDueLabel(task)}${sourceCount > 1 ? ` · ${sourceCount} sources` : ""}`;
   return chip;
 }
 
@@ -130,14 +151,15 @@ function render() {
 function renderMonth() {
   els.monthLabel.textContent = formatMonth(currentMonth);
   els.monthGrid.replaceChildren();
-  hidePopover();
+  // Background refreshes (e.g. extraction polling) must not close a pinned bubble.
+  if (!popoverPinned) hidePopover();
 
-  const conflicts = conflictDates(state.tasks);
+  const shownTasks = displayTasks();
   const today = new Date();
 
   for (const date of monthCells(currentMonth)) {
     const iso = toISODate(date);
-    const dayTasks = tasksForDate(state.tasks, date);
+    const dayTasks = tasksForDate(shownTasks, date);
     const cell = document.createElement("div");
     cell.className = "day-cell";
     cell.tabIndex = 0;
@@ -157,14 +179,6 @@ function renderMonth() {
     const number = document.createElement("span");
     number.textContent = String(date.getDate());
     header.append(number);
-
-    if (conflicts.has(iso)) {
-      const badge = document.createElement("span");
-      badge.className = "conflict-badge";
-      badge.textContent = "⚠";
-      badge.title = conflicts.get(iso);
-      header.append(badge);
-    }
     cell.append(header);
 
     for (const task of dayTasks.slice(0, 3)) {
@@ -197,17 +211,18 @@ function renderWeek() {
   els.weekLabel.textContent = formatWeekRange(currentWeek);
   els.weekHeader.replaceChildren();
   els.weekGrid.replaceChildren();
-  hidePopover();
+  if (!popoverPinned) hidePopover();
 
-  const conflicts = conflictDates(state.tasks);
+  const shownTasks = displayTasks();
   const today = new Date();
 
   for (let index = 0; index < 7; index += 1) {
     const date = addDays(currentWeek, index);
-    const dayTasks = tasksForDate(state.tasks, date);
+    const dayTasks = tasksForDate(shownTasks, date);
 
     const header = document.createElement("div");
     header.className = "week-day-header";
+    header.dataset.weekDate = toISODate(date);
     if (sameDay(date, today)) {
       header.classList.add("is-today");
     }
@@ -230,14 +245,14 @@ function renderWeek() {
       column.append(empty);
     } else {
       for (const task of dayTasks) {
-        column.append(renderTaskCard(task, conflicts));
+        column.append(renderTaskCard(task));
       }
     }
     els.weekGrid.append(column);
   }
 }
 
-function renderTaskCard(task, conflicts) {
+function renderTaskCard(task) {
   const priority = priorityFor(task);
   const card = document.createElement("div");
   card.className = [
@@ -274,14 +289,6 @@ function renderTaskCard(task, conflicts) {
   badge.textContent = priority.bucket;
   meta.append(badge);
 
-  if (task.due_date && conflicts.has(task.due_date)) {
-    const conflict = document.createElement("span");
-    conflict.className = "conflict-badge";
-    conflict.textContent = "⚠";
-    conflict.title = conflicts.get(task.due_date);
-    meta.append(conflict);
-  }
-
   card.append(title, meta);
 
   card.addEventListener("mouseenter", () => showTaskPopover(task, card, false));
@@ -303,26 +310,25 @@ function renderTaskCard(task, conflicts) {
 }
 
 function renderUndated(section, list) {
-  const undated = state.tasks.filter((task) => task.date_confidence === "unknown");
+  const undated = displayTasks().filter((task) => task.date_confidence === "unknown");
+
   section.classList.toggle("is-hidden", undated.length === 0);
   list.replaceChildren();
 
   for (const task of undated) {
     const chip = taskChip(task);
+    chip.dataset.taskId = task.id;
     chip.tabIndex = 0;
     chip.setAttribute("role", "button");
-    chip.addEventListener("mouseenter", () => showTaskPopover(task, chip, false));
-    chip.addEventListener("mouseleave", scheduleHide);
-    chip.addEventListener("focus", () => showTaskPopover(task, chip, false));
-    chip.addEventListener("blur", scheduleHide);
+    chip.title = `Click to jump to the upload week: ${task.title}`;
     chip.addEventListener("click", (event) => {
       event.stopPropagation();
-      showTaskPopover(task, chip, true);
+      jumpToTaskWeek(task);
     });
     chip.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
-        showTaskPopover(task, chip, true);
+        jumpToTaskWeek(task);
       }
     });
     list.append(chip);
@@ -330,12 +336,12 @@ function renderUndated(section, list) {
 }
 
 function showDatePopover(date, tasks, target) {
-  const title = `<div class="popover-title">${escapeHtml(formatLongDate(date))}</div>`;
   if (tasks.length === 0) {
-    showPopover(`${title}<p class="muted">${strings.noTasks}</p>`, target, false);
+    hidePopover();
     return;
   }
 
+  const title = `<div class="popover-title">${escapeHtml(formatLongDate(date))}</div>`;
   const items = tasks
     .map((task) => {
       const priority = priorityFor(task);
@@ -344,80 +350,125 @@ function showDatePopover(date, tasks, target) {
       )} · ${priority.bucket}</span></li>`;
     })
     .join("");
-  showPopover(`${title}<ul class="popover-list">${items}</ul>`, target, false);
+  showPopover(
+    `<div class="popover-content">${title}<ul class="popover-list">${items}</ul></div>`,
+    target,
+    false,
+  );
 }
 
 function showTaskPopover(task, target, pin) {
   const priority = priorityFor(task);
-  const upload = state.uploads[task.upload_id];
-  const conflicts = conflictDates(state.tasks);
-  const conflict = task.due_date && conflicts.has(task.due_date);
+  const sourceTasks = task.sourceTasks || [task];
 
   const html = `
-    <div class="popover-head">
-      <div>
+    <div class="popover-content">
+      <div class="popover-head">
         <div class="popover-title">${escapeHtml(task.title)}</div>
-        <div class="popover-subtitle">${escapeHtml(task.course_name)}</div>
+        <span class="priority-badge priority-${priority.bucket.toLowerCase()}">${priority.bucket}</span>
       </div>
-      <span class="priority-badge priority-${priority.bucket.toLowerCase()}">${priority.bucket}</span>
+      <p class="popover-desc" title="${escapeHtml(
+        task.description || strings.noDescription,
+      )}">${escapeHtml(task.description || strings.noDescription)}</p>
+      ${
+        task.subtasks?.length
+          ? `<div class="subtask-block">
+               <div class="source-label">${strings.subtasks} (${task.subtasks.length})</div>
+               <div class="subtask-summary" title="${escapeHtml(
+                 task.subtasks
+                   .map((item) =>
+                     item.description ? `${item.label} — ${item.description}` : item.label,
+                   )
+                   .join("\n"),
+               )}">${task.subtasks.map((item) => escapeHtml(item.label)).join(" · ")}</div>
+             </div>`
+          : ""
+      }
+      <div class="popover-meta" title="${escapeHtml(task.course_name)}">${strings.due}: ${escapeHtml(
+        taskDueLabel(task),
+      )} · ${escapeHtml(task.course_name)}</div>
+      ${
+        task.ambiguity_reason
+          ? `<div class="popover-warning">${escapeHtml(task.ambiguity_reason)}</div>`
+          : ""
+      }
+      <div class="source-block is-hidden">
+        ${sourceTasks.map((sourceTask) => {
+          const upload = state.uploads[sourceTask.upload_id];
+          return `<section class="source-entry">
+            <div class="source-label">${strings.source}: ${escapeHtml(
+              upload?.original_filename || sourceTask.upload_id,
+            )}</div>
+            <blockquote class="source-quote">${escapeHtml(sourceTask.source_quote)}</blockquote>
+            <button class="button button-small" type="button" data-upload-id="${escapeHtml(
+              sourceTask.upload_id,
+            )}">${strings.openFullText}</button>
+          </section>`;
+        }).join("")}
+      </div>
     </div>
-    <p class="popover-desc">${escapeHtml(task.description || strings.noDescription)}</p>
-    <div class="popover-meta">${strings.due}: ${escapeHtml(taskDueLabel(task))}</div>
-    ${
-      task.ambiguity_reason
-        ? `<div class="popover-warning">${escapeHtml(task.ambiguity_reason)}</div>`
-        : ""
-    }
-    ${conflict ? `<div class="popover-warning">⚠ ${escapeHtml(strings.conflict)}</div>` : ""}
     <div class="popover-actions">
-      <button class="button button-small" type="button" data-action="source">${strings.showSource}</button>
-      <button class="button button-small" type="button" data-action="full-text">${strings.openFullText}</button>
-    </div>
-    <div class="source-block is-hidden">
-      <div class="source-label">${strings.source}: ${escapeHtml(
-        upload?.original_filename || task.upload_id,
-      )}</div>
-      <blockquote class="source-quote">${escapeHtml(task.source_quote)}</blockquote>
+      <button class="button button-small" type="button" data-action="source" aria-expanded="false">${strings.showSource}</button>
     </div>
   `;
 
   showPopover(html, target, pin);
 
   const sourceButton = els.popover.querySelector('[data-action="source"]');
-  const fullTextButton = els.popover.querySelector('[data-action="full-text"]');
   const sourceBlock = els.popover.querySelector(".source-block");
+  const content = els.popover.querySelector(".popover-content");
 
   sourceButton?.addEventListener("click", () => {
-    sourceBlock?.classList.toggle("is-hidden");
+    if (!sourceBlock) return;
+    const expanded = !sourceBlock.classList.toggle("is-hidden");
+    sourceButton.textContent = expanded ? strings.hideSource : strings.showSource;
+    sourceButton.setAttribute("aria-expanded", String(expanded));
+    // Keep the bubble open while the user reads the expanded sources.
+    popoverPinned = true;
+    clearTimeout(hideTimer);
+    content.scrollTop = expanded ? content.scrollHeight : 0;
+    positionPopover();
   });
 
-  fullTextButton?.addEventListener("click", async () => {
-    try {
-      const text = await getUploadText(task.upload_id);
-      openTextModal(upload?.original_filename || strings.sourceText, text);
-    } catch (error) {
-      showToast(`${strings.requestFailed}: ${error.message}`, "error");
-    }
-  });
+  for (const fullTextButton of els.popover.querySelectorAll("[data-upload-id]")) {
+    fullTextButton.addEventListener("click", async () => {
+      const uploadId = fullTextButton.dataset.uploadId;
+      const upload = state.uploads[uploadId];
+      try {
+        const text = await getUploadText(uploadId);
+        openTextModal(upload?.original_filename || strings.sourceText, text);
+      } catch (error) {
+        showToast(`${strings.requestFailed}: ${error.message}`, "error");
+      }
+    });
+  }
 }
 
 function showPopover(html, target, pin) {
   clearTimeout(hideTimer);
   popoverPinned = Boolean(pin);
+  popoverTarget = target;
   els.popover.innerHTML = html;
   els.popover.classList.remove("is-hidden");
-  els.popover.scrollTop = 0;
+  const content = els.popover.querySelector(".popover-content");
+  if (content) content.scrollTop = 0;
+  positionPopover();
+}
 
-  const rect = target.getBoundingClientRect();
+function positionPopover() {
+  if (!popoverTarget) return;
+  const rect = popoverTarget.getBoundingClientRect();
+  // Always open above the target. Cap the height to the space above and to a
+  // compact maximum, so the bubble does not cover the page or grow a scrollbar.
+  const available = Math.max(80, rect.top - 16);
+  els.popover.style.maxHeight = `${Math.min(available, 340)}px`;
   const popRect = els.popover.getBoundingClientRect();
+
   let left = rect.left;
   if (left + popRect.width > window.innerWidth - 8) {
     left = Math.max(8, window.innerWidth - popRect.width - 8);
   }
-  let top = rect.bottom + 8;
-  if (top + popRect.height > window.innerHeight - 8) {
-    top = Math.max(8, rect.top - popRect.height - 8);
-  }
+  const top = Math.max(8, rect.top - popRect.height - 8);
   els.popover.style.left = `${Math.max(8, left)}px`;
   els.popover.style.top = `${top}px`;
 }
@@ -433,6 +484,7 @@ function scheduleHide() {
 function hidePopover() {
   clearTimeout(hideTimer);
   popoverPinned = false;
+  popoverTarget = null;
   els.popover.classList.add("is-hidden");
   els.popover.innerHTML = "";
 }
@@ -443,6 +495,38 @@ function openWeek(date) {
   hidePopover();
   render();
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function jumpToTaskWeek(task) {
+  const upload = state.uploads[task.upload_id];
+  const anchor = upload ? new Date(upload.uploaded_at) : new Date();
+  currentWeek = startOfWeek(anchor);
+  view = "week";
+  hidePopover();
+  render();
+  requestAnimationFrame(() => {
+    const iso = toISODate(anchor);
+    const dayHeader = document.querySelector(`.week-day-header[data-week-date="${iso}"]`);
+    if (dayHeader) {
+      showPopover(
+        `<div class="popover-content">
+           <div class="popover-title">${escapeHtml(formatLongDate(anchor))}</div>
+           <p class="popover-desc"><strong>${escapeHtml(task.title)}</strong><br>
+           This is the upload date, not a deadline. The source does not specify a deadline.</p>
+           <div class="popover-meta">${escapeHtml(task.course_name)}</div>
+         </div>`,
+        dayHeader,
+        true,
+      );
+    }
+
+    const target = [...document.querySelectorAll("#week-undated-list .task-chip")].find(
+      (chip) => chip.dataset.taskId === task.id,
+    );
+    if (!target) return;
+    target.classList.add("is-flashing");
+    setTimeout(() => target.classList.remove("is-flashing"), 1600);
+  });
 }
 
 function openModal(element) {
@@ -622,18 +706,22 @@ function updatePasteCount() {
 
 function bindEvents() {
   els.prevMonth.addEventListener("click", () => {
+    hidePopover();
     currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
     render();
   });
   els.nextMonth.addEventListener("click", () => {
+    hidePopover();
     currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
     render();
   });
   els.prevWeek.addEventListener("click", () => {
+    hidePopover();
     currentWeek = addDays(currentWeek, -7);
     render();
   });
   els.nextWeek.addEventListener("click", () => {
+    hidePopover();
     currentWeek = addDays(currentWeek, 7);
     render();
   });
@@ -667,6 +755,15 @@ function bindEvents() {
 
   els.popover.addEventListener("mouseenter", () => clearTimeout(hideTimer));
   els.popover.addEventListener("mouseleave", scheduleHide);
+  // Interacting with the bubble pins it so it does not vanish mid-click.
+  els.popover.addEventListener("mousedown", () => {
+    popoverPinned = true;
+    clearTimeout(hideTimer);
+  });
+  els.popover.addEventListener("focusin", () => {
+    popoverPinned = true;
+    clearTimeout(hideTimer);
+  });
 
   document.addEventListener("click", (event) => {
     if (els.popover.classList.contains("is-hidden")) return;

@@ -11,6 +11,7 @@ from app.config import get_settings
 from app.schemas import (
     SCHEMA_VERSION,
     DbState,
+    DuplicateGroup,
     ExtractionStatus,
     SourceType,
     TaskRecord,
@@ -214,6 +215,15 @@ def replace_tasks(upload_id: str, tasks: list[TaskRecord]) -> None:
             raise StorageError(f"Upload not found: {upload_id}")
         state.tasks = [task for task in state.tasks if task.upload_id != upload_id]
         state.tasks.extend(tasks)
+        state.duplicate_groups = {}
+        _atomic_write_state(state)
+
+
+def set_duplicate_groups(groups: dict[str, DuplicateGroup]) -> None:
+    with _LOCK:
+        ensure_storage()
+        state = _read_state_unlocked()
+        state.duplicate_groups = groups
         _atomic_write_state(state)
 
 

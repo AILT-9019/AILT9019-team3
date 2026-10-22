@@ -6,12 +6,15 @@ import webbrowser
 
 import uvicorn
 
+from app.config import get_settings
 
-def _open_browser() -> None:
+
+def _open_browser(port: int) -> None:
     time.sleep(1.2)
-    webbrowser.open("http://127.0.0.1:8000")
+    webbrowser.open(f"http://127.0.0.1:{port}")
 
 
 if __name__ == "__main__":
-    threading.Thread(target=_open_browser, daemon=True).start()
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=False)
+    port = get_settings().port
+    threading.Thread(target=_open_browser, args=(port,), daemon=True).start()
+    uvicorn.run("app.main:app", host="127.0.0.1", port=port, reload=False)

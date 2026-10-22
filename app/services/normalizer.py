@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from dateutil import parser as date_parser
 
 from app.config import get_settings
-from app.schemas import DateConfidence, ExtractedTask, TaskType
+from app.schemas import DateConfidence, ExtractedTask, Subtask, TaskType
 
 MONTHS = (
     "jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|"
@@ -102,9 +102,137 @@ def normalize_tasks(
                     + " The estimated window is wider than three weeks."
                 )
 
+        data["subtasks"] = [
+            item.model_dump() for item in _filter_subtasks(task.subtasks)
+        ]
         normalized.append(ExtractedTask.model_validate(data))
 
     return _dedupe(normalized)
+
+
+_SUBTASK_TITLE_RE = re.compile(
+    r"(?:^|[-–—:|]\s*|\b)(?:task|part|question|q|step|requirement|exercise)\s*[A-Za-z0-9]",
+    flags=re.IGNORECASE,
+)
+_SUBTASK_KEY_RE = re.compile(
+    r"(?:task|part|question|q|step|requirement|exercise)\s*([A-Za-z0-9]+)",
+    flags=re.IGNORECASE,
+)
+_NUMBERED_TITLE_RE = re.compile(r"^\s*(?:\(?[A-Za-z0-9]\)|[0-9]+[.)])\s+")
+
+
+def merge_subtasks(tasks: list[ExtractedTask]) -> list[ExtractedTask]:
+    """Attach undated part/same-parent tasks to a single dated parent assignment."""
+    parents = [
+        task
+        for task in tasks
+        if task.date_confidence != DateConfidence.unknown
+        and not _looks_like_subtask_title(task.title)
+    ]
+    if len(parents) != 1:
+        return tasks
+
+    parent = parents[0]
+    children = [
+        task
+        for task in tasks
+        if task is not parent
+        and (
+            (
+                task.date_confidence == DateConfidence.unknown
+                and (
+                    _looks_like_subtask_title(task.title)
+                    or _title_matches_parent(task.title, parent.title)
+                )
+            )
+            or (
+                _looks_like_subtask_title(task.title)
+                and _same_deadline(task, parent)
+            )
+        )
+    ]
+
+    seen: set[str] = set()
+    subtasks: list[Subtask] = []
+
+    def add_subtask(item: Subtask) -> None:
+        key = _subtask_key(item.label)
+        if not key or key in seen:
+            return
+        seen.add(key)
+        subtasks.append(item)
+
+    for item in _filter_subtasks(parent.subtasks):
+        add_subtask(item)
+
+    for child in children:
+        if _looks_like_subtask_title(child.title):
+            add_subtask(
+                Subtask(
+                    label=child.title.strip()[:120],
+                    description=(child.description or child.source_quote)[:1000],
+                )
+            )
+        else:
+            for item in _filter_subtasks(child.subtasks):
+                add_subtask(item)
+
+    data = parent.model_dump()
+    data["subtasks"] = [item.model_dump() for item in subtasks]
+    merged_parent = ExtractedTask.model_validate(data)
+    child_ids = {id(child) for child in children}
+    return [merged_parent if task is parent else task for task in tasks if id(task) not in child_ids]
+
+
+def _filter_subtasks(subtasks: list[Subtask]) -> list[Subtask]:
+    """If the model returned Task A/B/C plus sub-steps, keep the top-level parts."""
+    if any(_looks_like_subtask_title(item.label) for item in subtasks):
+        return [item for item in subtasks if _looks_like_subtask_title(item.label)]
+    return subtasks
+
+
+def _looks_like_subtask_title(title: str) -> bool:
+    return bool(_SUBTASK_TITLE_RE.search(title) or _NUMBERED_TITLE_RE.match(title))
+
+
+def _subtask_key(label: str) -> str:
+    match = _SUBTASK_KEY_RE.match(label)
+    if match:
+        return f"part:{match.group(1).casefold()}"
+    return _normalize_label(label)
+
+
+def _title_matches_parent(title: str, parent_title: str) -> bool:
+    child_tokens = set(_title_tokens(title))
+    parent_tokens = set(_title_tokens(parent_title))
+    common = child_tokens & parent_tokens
+    type_words = {"assignment", "exam", "quiz", "project"}
+    return len(common) >= 3 and bool(common & type_words)
+
+
+def _title_tokens(value: str) -> list[str]:
+    return re.findall(r"[a-z0-9]+", value.casefold())
+
+
+def _same_deadline(left: ExtractedTask, right: ExtractedTask) -> bool:
+    if (
+        left.date_confidence == DateConfidence.exact
+        and right.date_confidence == DateConfidence.exact
+    ):
+        return left.due_date == right.due_date
+    if (
+        left.date_confidence == DateConfidence.range
+        and right.date_confidence == DateConfidence.range
+    ):
+        return (
+            left.due_range_start == right.due_range_start
+            and left.due_range_end == right.due_range_end
+        )
+    return False
+
+
+def _normalize_label(value: str) -> str:
+    return re.sub(r"[^\w]+", "", value.casefold(), flags=re.UNICODE)
 
 
 def _coerce_task(raw: dict, course_hint: str | None) -> dict | None:
@@ -161,7 +289,24 @@ def _coerce_task(raw: dict, course_hint: str | None) -> dict | None:
         "date_confidence": confidence,
         "ambiguity_reason": _text(raw.get("ambiguity_reason"))[:500] or None,
         "source_quote": quote,
+        "subtasks": _coerce_subtasks(raw.get("subtasks")),
     }
+
+
+def _coerce_subtasks(value: object) -> list[dict]:
+    if not isinstance(value, list):
+        return []
+    result: list[dict] = []
+    for item in value[:20]:
+        if isinstance(item, dict):
+            label = _text(item.get("label") or item.get("title") or item.get("name"))[:120]
+            description = _text(item.get("description") or item.get("summary"))[:1000] or None
+        else:
+            label = _text(item)[:120]
+            description = None
+        if label:
+            result.append({"label": label, "description": description})
+    return result
 
 
 def _coerce_date(value: object) -> date | None:

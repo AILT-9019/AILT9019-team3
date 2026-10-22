@@ -1,5 +1,10 @@
-.env
+# Local secrets
+apikey.env
+
+# Runtime data
 data/
+
+# Python caches
 __pycache__/
 *.py[cod]
 .venv/

@@ -18,10 +18,12 @@ CourseBrief turns course documents into a calendar of deadlines. Upload a syllab
    python -m pip install -r requirements.txt
    ```
 
-3. Copy `.env.example` to `.env`.
+3. Configure:
 
-   - For a no-key demo, set `EXTRACTOR_MODE=mock` in `.env`. The current local `.env` is already set to mock.
-   - For real extraction, set `EXTRACTOR_MODE=live`, `LLM_BASE_URL`, `LLM_API_KEY`, and `LLM_MODEL`.
+   - `.env` is committed and contains both DeepSeek and Qwen URL/model profiles.
+   - Copy `apikey.env.example` to `apikey.env`; set `LLM_PROVIDER=deepseek` or `LLM_PROVIDER=qwen`, then fill `LLM_API_KEY`.
+   - For a no-key demo, set `EXTRACTOR_MODE=mock` in `.env`.
+   - Never put an API key in `.env`; keys belong in `apikey.env`.
 
 4. Start the app:
 
@@ -29,7 +31,7 @@ CourseBrief turns course documents into a calendar of deadlines. Upload a syllab
    python run.py
    ```
 
-   The browser opens `http://127.0.0.1:8000`.
+   The browser opens `http://127.0.0.1:32922`. To change it, set `PORT` in `.env`.
 
 5. Click **Upload** or **Paste**, then wait for extraction to finish.
 
@@ -57,6 +59,11 @@ python -m ruff check .
 ```
 
 Tests use `EXTRACTOR_MODE=mock` and a temporary data directory; they do not call an external API.
+
+## Documentation
+
+- `项目文件说明.md` — Chinese file-by-file guide: what each file does and where to change what.
+- `test_files/` — synthetic course documents for manual upload/parse/extraction testing (TXT/MD sources plus PDF/DOCX versions).
 
 ## Known limits
 

@@ -139,6 +139,7 @@ export function isEstimated(task) {
   return task.date_confidence !== "exact";
 }
 
+// Kept for the evaluation harness; the UI does not display conflict warnings.
 export function conflictDates(tasks) {
   const dated = tasks.filter(
     (task) => task.date_confidence === "exact" && task.due_date,
