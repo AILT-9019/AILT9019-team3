@@ -1,74 +1,59 @@
 # CourseBrief
 
-CourseBrief turns course documents into a calendar of deadlines. Upload a syllabus, assignment brief, or announcement; the backend converts it to text, extracts tasks with an LLM, stores them in one JSON file, and the browser renders a month calendar that expands into a week view.
-
-## Status
-
-- Backend: FastAPI, single-file JSON storage, PDF/DOCX/TXT/Markdown parsing.
-- Extraction: live OpenAI-compatible LLM, or `EXTRACTOR_MODE=mock` for offline development.
-- UI: month calendar; click a date to expand the week; hover a date for task titles; hover a task for details and source expansion.
-- Not yet: task editing/deletion, calendar export, evaluation harness.
+CourseBrief extracts academic tasks from course documents and displays them in a month calendar and a week view. It is an early local prototype; formal evaluation has not been implemented.
 
 ## Quick start
 
-1. Python 3.11+.
-2. Install dependencies:
+1. Install Python 3.11+ and the runtime dependencies:
 
    ```bash
    python -m pip install -r requirements.txt
    ```
 
-3. Configure:
-
-   - `.env` is committed and contains both DeepSeek and Qwen URL/model profiles.
-   - Copy `apikey.env.example` to `apikey.env`; set `LLM_PROVIDER=deepseek` or `LLM_PROVIDER=qwen`, then fill `LLM_API_KEY`.
-   - For a no-key demo, set `EXTRACTOR_MODE=mock` in `.env`.
-   - Never put an API key in `.env`; keys belong in `apikey.env`.
-
-4. Start the app:
+2. Copy `apikey.env.example` to `apikey.env`. Choose `LLM_PROVIDER=deepseek` or `LLM_PROVIDER=qwen` and fill in `LLM_API_KEY`. Keep keys only in this ignored file. The committed `.env` contains non-sensitive model, semester and application settings.
+3. Start the app:
 
    ```bash
    python run.py
    ```
 
-   The browser opens `http://127.0.0.1:32922`. To change it, set `PORT` in `.env`.
+   The browser opens `http://127.0.0.1:32922`; `PORT` in `.env` changes the port. Restart the service after changing settings or Python code.
+4. Select **Upload** for PDF, DOCX, TXT or Markdown, or use **Paste**. Wait for extraction to finish. Failed uploads appear separately with a **Retry extraction** button. Parsing failures require a corrected file; retrying extraction cannot repair a damaged or scanned document.
 
-5. Click **Upload** or **Paste**, then wait for extraction to finish.
+For offline development, set `EXTRACTOR_MODE=mock` in `.env`. Mock mode produces one heuristic task per upload and does not measure extraction quality.
 
-## Data layout
+## Reading the calendar
 
-```text
-data/
-├── db.json                  # all structured data (uploads + tasks)
-├── db.json.bak              # previous successful write
-├── texts/
-│   └── 2026-10-22_143012.txt
-└── originals/
-    └── 2026-10-22_143012.pdf
-```
+- Click a date to open its week. Task cards show priority badges; tasks within a day retain their stored order.
+- Open a task and select **Show source** to inspect its source quotes or open the full extracted text. Duplicate uploads can share one displayed task while retaining separate sources.
+- **No confirmed deadline** means the task was extracted but its date could not be confirmed. Labels distinguish TBA, a missing date and a date needing review. Clicking such a task opens details in its upload week; the upload date is not a deadline.
+- An estimated range appears on its start date and remains labeled as estimated.
 
-- The upload timestamp is the unique ID and the text filename.
-- `db.json` stores only structured data; raw text and original files stay outside it.
-- There is no database. Back up by copying `data/`.
+## Data and privacy
 
-## Tests
+Structured uploads, tasks and duplicate groups are stored in `data/db.json`; extracted text and original files are stored in `data/texts/` and `data/originals/`. Copy the whole `data/` directory to back it up. `db.json.bak` holds the state before the latest successful write.
+
+Files are stored locally. Live extraction sends document text and context to the configured LLM endpoint. Use suitable test materials and check the source before relying on a deadline. The app does not access university accounts or submit work.
+
+## Development checks
 
 ```bash
+python -m pip install -r requirements-dev.txt
 python -m pytest -q
 python -m ruff check .
 ```
 
-Tests use `EXTRACTOR_MODE=mock` and a temporary data directory; they do not call an external API.
+Automated tests use temporary data and mock responses rather than external API calls. Live manual checks and formal evaluation are separate activities.
 
 ## Documentation
 
-- `项目文件说明.md` — Chinese file-by-file guide: what each file does and where to change what.
-- `test_files/` — synthetic course documents for manual upload/parse/extraction testing (TXT/MD sources plus PDF/DOCX versions).
+| File | Purpose |
+| --- | --- |
+| `实现计划.md` | Product behavior, current gaps, test plan and verification records |
+| `项目文件说明.md` | Repository layout, file responsibilities and configuration reference |
+| `README.group.md` | Historical project overview |
+| `test_files/` | Manual test fixtures; distinct from the planned formal evaluation set |
 
-## Known limits
+## Current limits
 
-- Mock mode returns one heuristic task per upload. It is for development and demos, not evaluation.
-- Live mode requires an OpenAI-compatible endpoint and API key.
-- Scanned PDFs are rejected because there is no OCR.
-- The calendar places exact deadlines and the start date of estimated ranges; undated tasks appear in the **Undated** section.
-- Task editing, task deletion, and export are not implemented yet.
+No OCR, task editing/deletion, completion tracking, export, multi-user support or formal evaluation harness. The UI does not display conflict warnings or a sorted priority list. Extraction and duplicate detection still depend on model output; see the implementation plan for verification scope and unresolved requirements.

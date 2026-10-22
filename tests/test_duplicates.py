@@ -1,6 +1,7 @@
 from datetime import date
 
 from app.schemas import DateConfidence, DuplicateGroup, TaskRecord, TaskType
+from app.services import deduplicator
 from app.services.deduplicator import build_duplicate_groups
 from app.storage import (
     create_upload,
@@ -70,3 +71,47 @@ def test_duplicate_groups_are_persisted_separately():
     assert len(state.tasks) == 2
     assert task_a.id in state.duplicate_groups
     assert state.duplicate_groups[task_a.id].task_ids == [task_a.id, task_b.id]
+
+
+def test_live_candidates_allow_title_and_course_name_variations(monkeypatch):
+    monkeypatch.setenv("EXTRACTOR_MODE", "live")
+    deduplicator._CACHE.clear()
+    tasks = [make_task("t1", "u1"), make_task("t2", "u2", title="Shell programming project")]
+    tasks[1].course_name = "COMP3230 Operating Systems"
+    prompts = []
+
+    def respond(system, user):
+        prompts.append(user)
+        return '{"duplicate_groups": [["t1", "t2"]]}'
+
+    monkeypatch.setattr(deduplicator, "chat_completion", respond)
+    groups, warning = build_duplicate_groups(tasks)
+    assert warning is None
+    assert len(groups) == 1
+    assert "Shell programming project" in prompts[0]
+
+
+def test_fallback_does_not_merge_different_titles_or_courses():
+    tasks = [make_task("t1", "u1"), make_task("t2", "u2", title="Assignment 2")]
+    assert build_duplicate_groups(tasks)[0] == {}
+    tasks[1].title = tasks[0].title
+    tasks[1].course_name = "COMP3234"
+    assert build_duplicate_groups(tasks)[0] == {}
+
+
+def test_failed_ai_grouping_is_not_cached(monkeypatch):
+    monkeypatch.setenv("EXTRACTOR_MODE", "live")
+    deduplicator._CACHE.clear()
+    calls = []
+
+    def respond(system, user):
+        calls.append(user)
+        if len(calls) == 1:
+            raise deduplicator.LLMError("offline")
+        return '{"duplicate_groups": [["t1", "t2"]]}'
+
+    monkeypatch.setattr(deduplicator, "chat_completion", respond)
+    tasks = [make_task("t1", "u1"), make_task("t2", "u2")]
+    assert build_duplicate_groups(tasks)[1] is not None
+    assert build_duplicate_groups(tasks)[1] is None
+    assert len(calls) == 2

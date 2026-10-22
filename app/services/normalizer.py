@@ -115,7 +115,7 @@ _SUBTASK_TITLE_RE = re.compile(
     flags=re.IGNORECASE,
 )
 _SUBTASK_KEY_RE = re.compile(
-    r"(?:task|part|question|q|step|requirement|exercise)\s*([A-Za-z0-9]+)",
+    r"\b(?:task|part|question|q|step|requirement|exercise)\s*([A-Za-z]|[0-9]+)\b",
     flags=re.IGNORECASE,
 )
 _NUMBERED_TITLE_RE = re.compile(r"^\s*(?:\(?[A-Za-z0-9]\)|[0-9]+[.)])\s+")
@@ -187,8 +187,11 @@ def merge_subtasks(tasks: list[ExtractedTask]) -> list[ExtractedTask]:
 def _filter_subtasks(subtasks: list[Subtask]) -> list[Subtask]:
     """If the model returned Task A/B/C plus sub-steps, keep the top-level parts."""
     if any(_looks_like_subtask_title(item.label) for item in subtasks):
-        return [item for item in subtasks if _looks_like_subtask_title(item.label)]
-    return subtasks
+        subtasks = [item for item in subtasks if _looks_like_subtask_title(item.label)]
+    unique: dict[str, Subtask] = {}
+    for item in subtasks:
+        unique.setdefault(_subtask_key(item.label), item)
+    return list(unique.values())
 
 
 def _looks_like_subtask_title(title: str) -> bool:
@@ -196,7 +199,7 @@ def _looks_like_subtask_title(title: str) -> bool:
 
 
 def _subtask_key(label: str) -> str:
-    match = _SUBTASK_KEY_RE.match(label)
+    match = _SUBTASK_KEY_RE.search(label)
     if match:
         return f"part:{match.group(1).casefold()}"
     return _normalize_label(label)

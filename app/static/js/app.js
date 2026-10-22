@@ -47,6 +47,7 @@ const els = {
   popover: $("#popover"),
   toast: $("#toast"),
   statusBar: $("#status-bar"),
+  failedUploads: $("#failed-uploads"),
   uploadButton: $("#upload-button"),
   pasteButton: $("#paste-button"),
   uploadModal: $("#upload-modal"),
@@ -76,6 +77,7 @@ let currentMonth = startOfMonth(new Date());
 let currentWeek = startOfWeek(new Date());
 let popoverPinned = false;
 let popoverTarget = null;
+let popoverTaskId = null;
 let hideTimer = null;
 let statusTimer = null;
 let toastTimer = null;
@@ -136,6 +138,11 @@ function taskChip(task) {
 }
 
 function render() {
+  renderFailedUploads();
+  const pinnedAnchor = popoverPinned && popoverTarget ? {
+    taskId: popoverTarget.dataset.taskId,
+    weekDate: popoverTarget.dataset.weekDate,
+  } : null;
   els.monthView.classList.toggle("is-hidden", view !== "month");
   els.weekView.classList.toggle("is-hidden", view !== "week");
 
@@ -145,6 +152,47 @@ function render() {
   } else {
     renderWeek();
     renderUndated(els.weekUndatedSection, els.weekUndatedList);
+  }
+  if (pinnedAnchor) {
+    const panel = view === "month" ? els.monthView : els.weekView;
+    const target = [...panel.querySelectorAll("[data-task-id], [data-week-date]")].find(
+      (element) => pinnedAnchor.taskId
+        ? element.dataset.taskId === pinnedAnchor.taskId
+        : element.dataset.weekDate === pinnedAnchor.weekDate,
+    );
+    if (target && (!popoverTaskId || displayTasks().some((task) => task.id === popoverTaskId))) {
+      popoverTarget = target;
+      positionPopover();
+    } else {
+      hidePopover();
+    }
+  }
+}
+
+function renderFailedUploads() {
+  const failed = Object.entries(state.uploads).filter(
+    ([, upload]) => upload.extraction.status === "failed",
+  );
+  els.failedUploads.classList.toggle("is-hidden", failed.length === 0);
+  els.failedUploads.replaceChildren();
+  for (const [uploadId, upload] of failed) {
+    const row = document.createElement("div");
+    const message = document.createElement("span");
+    message.textContent = `${upload.original_filename || uploadId}: ${upload.extraction.error || strings.extractionFailed} `;
+    const retry = document.createElement("button");
+    retry.type = "button";
+    retry.className = "button button-small";
+    retry.textContent = strings.retryExtraction;
+    retry.addEventListener("click", async () => {
+      retry.disabled = true;
+      try {
+        await runExtraction([uploadId]);
+      } finally {
+        retry.disabled = false;
+      }
+    });
+    row.append(message, retry);
+    els.failedUploads.append(row);
   }
 }
 
@@ -263,6 +311,7 @@ function renderTaskCard(task) {
     .filter(Boolean)
     .join(" ");
   card.tabIndex = 0;
+  card.dataset.taskId = task.id;
   card.setAttribute("role", "button");
   card.setAttribute("aria-label", `${task.title}, ${taskDueLabel(task)}`);
 
@@ -320,7 +369,11 @@ function renderUndated(section, list) {
     chip.dataset.taskId = task.id;
     chip.tabIndex = 0;
     chip.setAttribute("role", "button");
-    chip.title = `Click to jump to the upload week: ${task.title}`;
+    chip.textContent += ` · ${undatedReason(task)}`;
+    const filenames = (task.sourceTasks || [task]).map(
+      (source) => state.uploads[source.upload_id]?.original_filename || source.upload_id,
+    );
+    chip.title = `${undatedReason(task)} · ${filenames.join(", ")} · Click for details and sources`;
     chip.addEventListener("click", (event) => {
       event.stopPropagation();
       jumpToTaskWeek(task);
@@ -335,7 +388,19 @@ function renderUndated(section, list) {
   }
 }
 
+function undatedReason(task) {
+  const evidence = `${task.source_quote || ""} ${task.ambiguity_reason || ""}`;
+  if (/\b(TBA|TBD|to be announced|to be determined)\b/i.test(evidence)) {
+    return strings.deadlineTba;
+  }
+  if (/outside|invalid|conflict|ambiguous/i.test(task.ambiguity_reason || "")) {
+    return strings.dateNeedsReview;
+  }
+  return strings.dateMissing;
+}
+
 function showDatePopover(date, tasks, target) {
+  if (popoverPinned) return;
   if (tasks.length === 0) {
     hidePopover();
     return;
@@ -358,6 +423,7 @@ function showDatePopover(date, tasks, target) {
 }
 
 function showTaskPopover(task, target, pin) {
+  if (popoverPinned && !pin) return;
   const priority = priorityFor(task);
   const sourceTasks = task.sourceTasks || [task];
 
@@ -387,6 +453,9 @@ function showTaskPopover(task, target, pin) {
       <div class="popover-meta" title="${escapeHtml(task.course_name)}">${strings.due}: ${escapeHtml(
         taskDueLabel(task),
       )} · ${escapeHtml(task.course_name)}</div>
+      ${task.date_confidence === "unknown"
+        ? `<div class="popover-warning">${escapeHtml(undatedReason(task))}. ${strings.uploadDateOnly}</div>`
+        : ""}
       ${
         task.ambiguity_reason
           ? `<div class="popover-warning">${escapeHtml(task.ambiguity_reason)}</div>`
@@ -413,6 +482,7 @@ function showTaskPopover(task, target, pin) {
   `;
 
   showPopover(html, target, pin);
+  popoverTaskId = task.id;
 
   const sourceButton = els.popover.querySelector('[data-action="source"]');
   const sourceBlock = els.popover.querySelector(".source-block");
@@ -448,6 +518,7 @@ function showPopover(html, target, pin) {
   clearTimeout(hideTimer);
   popoverPinned = Boolean(pin);
   popoverTarget = target;
+  popoverTaskId = null;
   els.popover.innerHTML = html;
   els.popover.classList.remove("is-hidden");
   const content = els.popover.querySelector(".popover-content");
@@ -485,6 +556,7 @@ function hidePopover() {
   clearTimeout(hideTimer);
   popoverPinned = false;
   popoverTarget = null;
+  popoverTaskId = null;
   els.popover.classList.add("is-hidden");
   els.popover.innerHTML = "";
 }
@@ -508,16 +580,7 @@ function jumpToTaskWeek(task) {
     const iso = toISODate(anchor);
     const dayHeader = document.querySelector(`.week-day-header[data-week-date="${iso}"]`);
     if (dayHeader) {
-      showPopover(
-        `<div class="popover-content">
-           <div class="popover-title">${escapeHtml(formatLongDate(anchor))}</div>
-           <p class="popover-desc"><strong>${escapeHtml(task.title)}</strong><br>
-           This is the upload date, not a deadline. The source does not specify a deadline.</p>
-           <div class="popover-meta">${escapeHtml(task.course_name)}</div>
-         </div>`,
-        dayHeader,
-        true,
-      );
+      showTaskPopover(task, dayHeader, true);
     }
 
     const target = [...document.querySelectorAll("#week-undated-list .task-chip")].find(

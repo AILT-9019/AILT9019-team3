@@ -141,3 +141,24 @@ def test_coerce_payload_keeps_subtasks():
 
     assert len(tasks[0]["subtasks"]) == 2
     assert tasks[0]["subtasks"][0]["label"] == "Task A"
+
+
+def test_prefixed_parts_are_deduped_even_without_parent_deadline():
+    for due in (None, date(2026, 11, 4)):
+        parent = task("Programming Assignment 1", due=due)
+        parent.subtasks = [
+            Subtask(label="Task A"),
+            Subtask(label="Task B"),
+            Subtask(label="Task C"),
+            Subtask(label="Programming Assignment 1 - Task A: Lowest difficulty"),
+            Subtask(label="Programming Assignment 1 - Task B: Count unreachable courses"),
+        ]
+        normalized = merge_subtasks(normalize_tasks([parent], course_hint=None))
+        assert [item.label for item in normalized[0].subtasks] == ["Task A", "Task B", "Task C"]
+
+
+def test_numbered_parts_do_not_collide():
+    parent = task("Assignment 1", due=None)
+    parent.subtasks = [Subtask(label="Question 1"), Subtask(label="Question 10")]
+    normalized = normalize_tasks([parent], course_hint=None)
+    assert len(normalized[0].subtasks) == 2

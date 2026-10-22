@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 import httpx
 
 from app.config import get_settings
@@ -13,7 +15,7 @@ def chat_completion(system: str, user: str, *, repair: bool = False) -> str:
     settings = get_settings()
     if not settings.llm_api_key:
         raise LLMError(
-            "LLM_API_KEY is not configured. Set it in .env or use EXTRACTOR_MODE=mock."
+            "LLM_API_KEY is not configured. Set it in apikey.env or use EXTRACTOR_MODE=mock."
         )
 
     if repair:
@@ -38,10 +40,7 @@ def chat_completion(system: str, user: str, *, repair: bool = False) -> str:
     url = f"{settings.llm_base_url}/chat/completions"
 
     with httpx.Client(timeout=60.0) as client:
-        response = client.post(url, headers=headers, json=payload)
-        if response.status_code == 400:
-            payload.pop("response_format", None)
-            response = client.post(url, headers=headers, json=payload)
+        response = _post_with_retry(client, url, headers, payload)
         if response.status_code >= 400:
             snippet = response.text[:500]
             raise LLMError(f"LLM request failed ({response.status_code}): {snippet}")
@@ -64,3 +63,25 @@ def chat_completion(system: str, user: str, *, repair: bool = False) -> str:
     if not isinstance(content, str) or not content.strip():
         raise LLMError("LLM returned empty content")
     return content
+
+
+def _post_with_retry(
+    client: httpx.Client, url: str, headers: dict, payload: dict
+) -> httpx.Response:
+    for attempt in range(3):
+        try:
+            response = client.post(url, headers=headers, json=payload)
+            if response.status_code == 400 and "response_format" in payload:
+                payload.pop("response_format")
+                response = client.post(url, headers=headers, json=payload)
+            if response.status_code not in {429, 500, 502, 503, 504} or attempt == 2:
+                return response
+        except httpx.TransportError as exc:
+            if attempt == 2:
+                raise LLMError(
+                    "LLM connection failed after 3 attempts. "
+                    "Check your network and retry extraction."
+                ) from exc
+        # 网络故障独立于 JSON 修复重试，避免把超时误报为 JSON 错误。
+        time.sleep(attempt + 1)
+    raise LLMError("LLM request failed. Retry extraction.")

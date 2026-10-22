@@ -45,7 +45,7 @@ class Settings:
     max_doc_chars: int
     max_files_per_upload: int
     port: int
-    prompt_version: str = "v1"
+    prompt_version: str = "v2"
 
 
 @lru_cache(maxsize=1)

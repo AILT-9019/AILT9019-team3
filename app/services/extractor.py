@@ -33,7 +33,8 @@ from app.storage import (
     set_extraction,
 )
 
-CHUNK_SIZE = 6000
+# 常见作业说明尽量整体抽取，较长文档仍传递页眉和已有任务。
+CHUNK_SIZE = 16000
 MAX_CHUNKS = 30
 
 _DATE_PATTERNS = (
@@ -123,9 +124,41 @@ def _extract_live(text: str, upload) -> list[ExtractedTask]:
             chunk_index=index,
             chunk_count=len(chunks),
             chunk_text=chunk,
+            document_header=text[:2000],
+            known_tasks=[task.model_dump(mode="json") for task in tasks],
         )
-        tasks.extend(_extract_chunk(user_prompt, upload.course_hint))
+        for task in _extract_chunk(user_prompt, upload.course_hint):
+            _merge_continuation(tasks, task)
     return tasks
+
+
+def _merge_continuation(tasks: list[ExtractedTask], incoming: ExtractedTask) -> None:
+    """合并同名任务的续段；不同明确截止日期的任务仍然独立保留。"""
+    for index, existing in enumerate(tasks):
+        if (
+            existing.course_name.casefold() != incoming.course_name.casefold()
+            or existing.title.casefold() != incoming.title.casefold()
+        ):
+            continue
+        existing_dates = (existing.due_date, existing.due_range_start, existing.due_range_end)
+        incoming_dates = (incoming.due_date, incoming.due_range_start, incoming.due_range_end)
+        if (
+            existing.date_confidence != DateConfidence.unknown
+            and incoming.date_confidence != DateConfidence.unknown
+            and existing_dates != incoming_dates
+        ):
+            continue
+        preferred = incoming if incoming.date_confidence != DateConfidence.unknown else existing
+        data = preferred.model_dump()
+        data["description"] = max(
+            (existing.description or "", incoming.description or ""), key=len
+        ) or None
+        data["subtasks"] = [
+            item.model_dump() for item in existing.subtasks + incoming.subtasks
+        ]
+        tasks[index] = ExtractedTask.model_validate(data)
+        return
+    tasks.append(incoming)
 
 
 def _extract_chunk(user_prompt: str, course_hint: str | None) -> list[ExtractedTask]:
@@ -141,7 +174,7 @@ def _extract_chunk(user_prompt: str, course_hint: str | None) -> list[ExtractedT
             raw_tasks = coerce_payload(payload, course_hint)
             response = ExtractionResponse.model_validate({"tasks": raw_tasks})
             return response.tasks
-        except (ValueError, TypeError, ValidationError, llm_client.LLMError) as exc:
+        except (ValueError, TypeError, ValidationError) as exc:
             last_error = exc
     raise ExtractionError(f"LLM returned invalid JSON: {last_error}")
 

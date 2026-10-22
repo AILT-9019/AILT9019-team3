@@ -1,6 +1,9 @@
 # Local secrets
 apikey.env
 
+# Local collaboration instructions
+/要求.md
+
 # Runtime data
 data/
 

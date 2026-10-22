@@ -1,8 +1,14 @@
 import time
+from datetime import datetime, timezone
+from types import SimpleNamespace
 
+import httpx
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.schemas import DateConfidence, ExtractedTask, TaskType
+from app.services import extractor, llm_client
 
 
 def _wait_for_extraction(client: TestClient, upload_id: str, timeout: float = 3.0) -> dict:
@@ -59,3 +65,95 @@ def test_start_extraction_for_missing_upload_returns_404():
     with TestClient(app) as client:
         response = client.post("/api/extractions", json={"upload_ids": ["missing"]})
         assert response.status_code == 404
+
+
+def test_continuation_receives_header_and_existing_assignment(monkeypatch):
+    chunks = ["COMP3234\nGame House assignment. Implement a game house.", "Submit GameServer.py."]
+    monkeypatch.setattr(extractor, "_chunk_text", lambda text: chunks)
+    calls = []
+    parent = ExtractedTask(
+        course_name="COMP3234", title="Game House", task_type=TaskType.assignment,
+        date_confidence=DateConfidence.unknown, source_quote="Implement a game house.",
+    )
+
+    def respond(prompt, hint):
+        calls.append(prompt)
+        return [parent] if len(calls) == 1 else []
+
+    monkeypatch.setattr(extractor, "_extract_chunk", respond)
+    upload = SimpleNamespace(
+        original_filename="handout.pdf", course_hint=None, uploaded_at=datetime.now(timezone.utc),
+    )
+    result = extractor._extract_live("\n".join(chunks), upload)
+    assert len(result) == 1
+    assert '"title": "Game House"' in calls[1]
+    assert "COMP3234" in calls[1]
+    assert "Submit GameServer.py." in calls[1]
+
+
+def test_continuation_adds_deadline_without_losing_assignment():
+    from datetime import date
+
+    parent = ExtractedTask(
+        course_name="COMP3234", title="Game House", task_type=TaskType.assignment,
+        date_confidence=DateConfidence.unknown, source_quote="Implement a game house.",
+    )
+    tasks = [parent]
+    dated = parent.model_copy(update={
+        "date_confidence": DateConfidence.exact, "due_date": date(2026, 11, 4),
+        "source_quote": "Due Nov 4, 2026.",
+    })
+    extractor._merge_continuation(tasks, dated)
+    assert len(tasks) == 1
+    assert tasks[0].due_date == date(2026, 11, 4)
+    extractor._merge_continuation(tasks, dated.model_copy(update={"due_date": date(2026, 11, 8)}))
+    assert len(tasks) == 2
+
+
+def test_assignment_handout_fits_single_chunk():
+    from pathlib import Path
+
+    from app.services.parsers import parse_upload
+
+    path = Path(__file__).resolve().parents[1] / "test_files/program_assignment_handout-2.pdf"
+    assert len(extractor._chunk_text(parse_upload(path.name, path.read_bytes()))) == 1
+
+
+@pytest.mark.parametrize("failure", ["timeout", "503", "format-timeout"])
+def test_llm_retries_transport_and_transient_errors(monkeypatch, failure):
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setattr(llm_client.time, "sleep", lambda seconds: None)
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        if len(calls) == 1:
+            if failure == "format-timeout":
+                return httpx.Response(400)
+            if failure == "503":
+                return httpx.Response(503)
+            raise httpx.ConnectTimeout("handshake timed out", request=request)
+        if failure == "format-timeout" and len(calls) == 2:
+            raise httpx.ConnectTimeout("handshake timed out", request=request)
+        return httpx.Response(200, json={"choices": [{"message": {"content": '{"tasks": []}'}}]})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    monkeypatch.setattr(llm_client.httpx, "Client", lambda **kwargs: client)
+    assert llm_client.chat_completion("system", "user") == '{"tasks": []}'
+    assert len(calls) == (3 if failure == "format-timeout" else 2)
+
+
+def test_llm_persistent_network_failure_is_actionable(monkeypatch):
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setattr(llm_client.time, "sleep", lambda seconds: None)
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        raise httpx.ConnectTimeout("handshake timed out", request=request)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    monkeypatch.setattr(llm_client.httpx, "Client", lambda **kwargs: client)
+    with pytest.raises(llm_client.LLMError, match="after 3 attempts"):
+        extractor._extract_chunk("prompt", None)
+    assert len(calls) == 3
