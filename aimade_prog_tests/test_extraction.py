@@ -157,3 +157,43 @@ def test_llm_persistent_network_failure_is_actionable(monkeypatch):
     with pytest.raises(llm_client.LLMError, match="after 3 attempts"):
         extractor._extract_chunk("prompt", None)
     assert len(calls) == 3
+
+
+def test_repeated_start_requests_do_not_schedule_duplicate_jobs(monkeypatch):
+    import app.main as main_module
+
+    calls = []
+    monkeypatch.setattr(main_module, "extract_upload", calls.append)
+    with TestClient(app) as client:
+        uid = _paste(client, "Assignment due 2026-10-24.")
+        first = client.post("/api/extractions", json={"upload_ids": [uid, uid]})
+        second = client.post("/api/extractions", json={"upload_ids": [uid]})
+        assert first.json()["upload_ids"] == [uid]
+        assert second.json()["upload_ids"] == [uid]
+    assert calls == [uid]
+
+
+def test_duplicate_refresh_retries_after_task_change(monkeypatch):
+    from app.schemas import TaskRecord
+    from app.storage import create_upload, read_state, replace_tasks
+
+    uid, _ = create_upload("Assignment source.", "paste")
+    record = TaskRecord(
+        id=f"{uid}_01", upload_id=uid, course_name="COMP3230", title="Assignment",
+        task_type=TaskType.assignment, date_confidence=DateConfidence.unknown,
+        source_quote="Assignment source.",
+    )
+    replace_tasks(uid, [record])
+    calls = []
+
+    def build(tasks):
+        calls.append(tasks)
+        if len(calls) == 1:
+            replace_tasks(uid, [record.model_copy(update={"description": "Updated."})])
+        return {}, None
+
+    monkeypatch.setattr(extractor, "build_duplicate_groups", build)
+    extractor._refresh_duplicate_groups()
+    assert len(calls) == 2
+    assert calls[1][0].description == "Updated."
+    assert read_state().tasks[0].description == "Updated."

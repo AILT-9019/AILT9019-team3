@@ -162,3 +162,21 @@ def test_numbered_parts_do_not_collide():
     parent.subtasks = [Subtask(label="Question 1"), Subtask(label="Question 10")]
     normalized = normalize_tasks([parent], course_hint=None)
     assert len(normalized[0].subtasks) == 2
+
+
+def test_quiz_is_not_mistaken_for_q_subtask():
+    parent = task("Assignment 1", due=date(2026, 11, 4))
+    quiz = task("Quiz 2", due=None)
+    assert len(merge_subtasks([parent, quiz])) == 2
+
+
+def test_task_analysis_is_not_a_named_part():
+    parent = task("Assignment 1", due=date(2026, 11, 4))
+    other = task("Task Analysis Report", due=None)
+    assert len(merge_subtasks([parent, other])) == 2
+
+
+def test_chinese_titles_are_not_collapsed_by_deduplication():
+    first = task("实验报告", due=date(2026, 11, 4))
+    second = task("课程论文", due=date(2026, 11, 4))
+    assert len(normalize_tasks([first, second], course_hint=None)) == 2

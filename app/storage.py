@@ -7,6 +7,8 @@ import threading
 from datetime import datetime
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from app.config import get_settings
 from app.schemas import (
     SCHEMA_VERSION,
@@ -48,10 +50,14 @@ def _read_state_from(path: Path) -> DbState:
         raise StorageError(f"Storage file not found: {path}") from exc
     except json.JSONDecodeError as exc:
         raise StorageError(f"Invalid JSON in {path}: {exc}") from exc
+    except UnicodeDecodeError as exc:
+        raise StorageError(f"Invalid UTF-8 in {path}") from exc
+    except OSError as exc:
+        raise StorageError(f"Could not read storage file: {path}") from exc
 
     try:
         state = DbState.model_validate(payload)
-    except Exception as exc:
+    except ValidationError as exc:
         raise StorageError(f"Invalid storage schema in {path}: {exc}") from exc
 
     if state.schema_version != SCHEMA_VERSION:
@@ -68,19 +74,28 @@ def _read_state_unlocked() -> DbState:
 
 def _atomic_write_state(state: DbState, *, backup_current: bool = True) -> None:
     db_path = _db_path()
-    db_path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = db_path.with_name(db_path.name + ".tmp")
     payload = state.model_dump(mode="json")
-    tmp_path.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    if backup_current and db_path.exists():
-        shutil.copyfile(db_path, _backup_path())
-    os.replace(tmp_path, db_path)
+    try:
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        if backup_current and db_path.exists():
+            shutil.copyfile(db_path, _backup_path())
+        os.replace(tmp_path, db_path)
+    except OSError as exc:
+        raise StorageError(f"Could not save storage file: {db_path}") from exc
 
 
 def ensure_storage() -> None:
+    # 启动自检也可能与读写交错，须与原子写共用同一把锁。
+    with _LOCK:
+        _ensure_storage_unlocked()
+
+
+def _ensure_storage_unlocked() -> None:
     settings = get_settings()
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     _texts_dir().mkdir(parents=True, exist_ok=True)
@@ -91,7 +106,8 @@ def ensure_storage() -> None:
         tmp_path.unlink()
 
     if not _db_path().exists():
-        _atomic_write_state(DbState(), backup_current=False)
+        recovered = _read_state_from(_backup_path()) if _backup_path().exists() else DbState()
+        _atomic_write_state(recovered, backup_current=False)
         return
 
     try:
@@ -186,7 +202,7 @@ def set_extraction(
     *,
     error: str | None = None,
     model: str | None = None,
-    prompt_version: str = "v1",
+    prompt_version: str | None = None,
 ) -> None:
     with _LOCK:
         ensure_storage()
@@ -198,8 +214,31 @@ def set_extraction(
         record.extraction.error = error
         if model is not None:
             record.extraction.model = model
-        record.extraction.prompt_version = prompt_version
+        if prompt_version is not None:
+            record.extraction.prompt_version = prompt_version
         _atomic_write_state(state)
+
+
+def claim_extractions(upload_ids: list[str]) -> list[str]:
+    """原子占用待抽取记录，避免重复请求同时调度同一上传。"""
+    with _LOCK:
+        ensure_storage()
+        state = _read_state_unlocked()
+        unique_ids = list(dict.fromkeys(upload_ids))
+        for upload_id in unique_ids:
+            if upload_id not in state.uploads:
+                raise StorageError(f"Upload not found: {upload_id}")
+        claimed: list[str] = []
+        for upload_id in unique_ids:
+            record = state.uploads[upload_id]
+            if record.extraction.status == ExtractionStatus.running:
+                continue
+            record.extraction.status = ExtractionStatus.running
+            record.extraction.error = None
+            claimed.append(upload_id)
+        if claimed:
+            _atomic_write_state(state)
+        return claimed
 
 
 def replace_tasks(upload_id: str, tasks: list[TaskRecord]) -> None:
@@ -219,12 +258,18 @@ def replace_tasks(upload_id: str, tasks: list[TaskRecord]) -> None:
         _atomic_write_state(state)
 
 
-def set_duplicate_groups(groups: dict[str, DuplicateGroup]) -> None:
+def set_duplicate_groups(
+    groups: dict[str, DuplicateGroup], *, expected_tasks: list[TaskRecord] | None = None
+) -> bool:
     with _LOCK:
         ensure_storage()
         state = _read_state_unlocked()
+        # LLM 调用在锁外；仅保存仍匹配当前任务快照的结果。
+        if expected_tasks is not None and state.tasks != expected_tasks:
+            return False
         state.duplicate_groups = groups
         _atomic_write_state(state)
+        return True
 
 
 def get_task(task_id: str) -> TaskRecord | None:

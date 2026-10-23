@@ -115,3 +115,40 @@ def test_failed_ai_grouping_is_not_cached(monkeypatch):
     assert build_duplicate_groups(tasks)[1] is not None
     assert build_duplicate_groups(tasks)[1] is None
     assert len(calls) == 2
+
+
+def test_duplicate_snapshot_cannot_overwrite_updated_tasks():
+    upload_a, _ = create_upload("Source A.", "paste")
+    upload_b, _ = create_upload("Source B.", "paste")
+    a = make_task(f"{upload_a}_01", upload_a)
+    b = make_task(f"{upload_b}_01", upload_b)
+    replace_tasks(upload_a, [a])
+    replace_tasks(upload_b, [b])
+    old_snapshot = read_state().tasks
+    groups = {a.id: DuplicateGroup(task_ids=[a.id, b.id], source="exact")}
+    replace_tasks(upload_b, [b.model_copy(update={"description": "Updated source."})])
+    assert set_duplicate_groups(groups, expected_tasks=old_snapshot) is False
+    assert read_state().duplicate_groups == {}
+    fresh_snapshot = read_state().tasks
+    assert set_duplicate_groups(groups, expected_tasks=fresh_snapshot) is True
+    assert set_duplicate_groups({}, expected_tasks=old_snapshot) is False
+    assert read_state().duplicate_groups == groups
+
+
+def test_duplicate_cache_does_not_reuse_mock_result_for_live(monkeypatch):
+    from app.config import get_settings
+
+    deduplicator._CACHE.clear()
+    tasks = [make_task("t1", "u1"), make_task("t2", "u2", title="Shell project")]
+    assert build_duplicate_groups(tasks)[0] == {}
+    monkeypatch.setenv("EXTRACTOR_MODE", "live")
+    get_settings.cache_clear()
+    calls = []
+
+    def respond(system, user):
+        calls.append(user)
+        return '{"duplicate_groups": [["t1", "t2"]]}'
+
+    monkeypatch.setattr(deduplicator, "chat_completion", respond)
+    assert len(build_duplicate_groups(tasks)[0]) == 1
+    assert len(calls) == 1

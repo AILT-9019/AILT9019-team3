@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from datetime import date, datetime
 
@@ -36,6 +37,7 @@ from app.storage import (
 # 常见作业说明尽量整体抽取，较长文档仍传递页眉和已有任务。
 CHUNK_SIZE = 16000
 MAX_CHUNKS = 30
+_LOGGER = logging.getLogger(__name__)
 
 _DATE_PATTERNS = (
     r"\b\d{4}-\d{2}-\d{2}\b",
@@ -86,10 +88,10 @@ def extract_upload(upload_id: str) -> None:
         ]
         replace_tasks(upload_id, records)
         try:
-            groups, _ = build_duplicate_groups(read_state().tasks)
-            set_duplicate_groups(groups)
+            _refresh_duplicate_groups()
         except Exception:  # noqa: BLE001 - display-only grouping must not fail extraction
-            set_duplicate_groups({})
+            # replace_tasks 已清空旧分组；不能用过期结果清除其他请求刚保存的分组。
+            _LOGGER.warning("Duplicate grouping could not be refreshed.")
         set_extraction(
             upload_id,
             ExtractionStatus.succeeded,
@@ -104,6 +106,17 @@ def extract_upload(upload_id: str) -> None:
             model=model_name,
             prompt_version=settings.prompt_version,
         )
+
+
+def _refresh_duplicate_groups() -> None:
+    for _ in range(3):
+        snapshot = read_state().tasks
+        groups, warning = build_duplicate_groups(snapshot)
+        if warning:
+            _LOGGER.warning("AI duplicate check unavailable; using exact-match fallback.")
+        if set_duplicate_groups(groups, expected_tasks=snapshot):
+            return
+    _LOGGER.warning("Duplicate grouping skipped because tasks kept changing.")
 
 
 def _extract_live(text: str, upload) -> list[ExtractedTask]:

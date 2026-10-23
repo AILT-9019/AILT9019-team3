@@ -78,6 +78,7 @@ let currentWeek = startOfWeek(new Date());
 let popoverPinned = false;
 let popoverTarget = null;
 let popoverTaskId = null;
+let popoverTaskSnapshot = null;
 let hideTimer = null;
 let statusTimer = null;
 let toastTimer = null;
@@ -160,8 +161,17 @@ function render() {
         ? element.dataset.taskId === pinnedAnchor.taskId
         : element.dataset.weekDate === pinnedAnchor.weekDate,
     );
-    if (target && (!popoverTaskId || displayTasks().some((task) => task.id === popoverTaskId))) {
+    const currentTask = displayTasks().find((task) => task.id === popoverTaskId);
+    if (target && (!popoverTaskId || currentTask)) {
       popoverTarget = target;
+      if (currentTask && JSON.stringify(currentTask) !== popoverTaskSnapshot) {
+        const expanded = els.popover.querySelector('[data-action="source"]')?.getAttribute("aria-expanded") === "true";
+        const scrollTop = els.popover.querySelector(".popover-content")?.scrollTop || 0;
+        showTaskPopover(currentTask, target, true);
+        if (expanded) els.popover.querySelector('[data-action="source"]')?.click();
+        const content = els.popover.querySelector(".popover-content");
+        if (content) content.scrollTop = scrollTop;
+      }
       positionPopover();
     } else {
       hidePopover();
@@ -483,6 +493,7 @@ function showTaskPopover(task, target, pin) {
 
   showPopover(html, target, pin);
   popoverTaskId = task.id;
+  popoverTaskSnapshot = JSON.stringify(task);
 
   const sourceButton = els.popover.querySelector('[data-action="source"]');
   const sourceBlock = els.popover.querySelector(".source-block");
@@ -519,6 +530,7 @@ function showPopover(html, target, pin) {
   popoverPinned = Boolean(pin);
   popoverTarget = target;
   popoverTaskId = null;
+  popoverTaskSnapshot = null;
   els.popover.innerHTML = html;
   els.popover.classList.remove("is-hidden");
   const content = els.popover.querySelector(".popover-content");
@@ -557,6 +569,7 @@ function hidePopover() {
   popoverPinned = false;
   popoverTarget = null;
   popoverTaskId = null;
+  popoverTaskSnapshot = null;
   els.popover.classList.add("is-hidden");
   els.popover.innerHTML = "";
 }

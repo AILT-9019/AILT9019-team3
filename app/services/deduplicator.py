@@ -196,7 +196,9 @@ def _cache_key(candidates: dict[tuple[str, str], list[TaskRecord]]) -> str:
         for task in candidates[key]:
             payload.append(_task_payload(task))
     raw = json.dumps(payload, ensure_ascii=False, sort_keys=True)
-    return hashlib.sha256(f"{PROMPT_VERSION}:{raw}".encode()).hexdigest()
+    settings = get_settings()
+    context = (PROMPT_VERSION, settings.extractor_mode, settings.llm_base_url, settings.llm_model)
+    return hashlib.sha256(f"{context}:{raw}".encode()).hexdigest()
 
 
 def _normalize(value: str) -> str:

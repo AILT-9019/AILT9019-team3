@@ -51,9 +51,14 @@ Automated tests use temporary data and mock responses rather than external API c
 | --- | --- |
 | `实现计划.md` | Product behavior, current gaps, test plan and verification records |
 | `项目文件说明.md` | Repository layout, file responsibilities and configuration reference |
-| `README.group.md` | Historical project overview |
 | `test_files/` | Manual test fixtures; distinct from the planned formal evaluation set |
 
 ## Current limits
 
 No OCR, task editing/deletion, completion tracking, export, multi-user support or formal evaluation harness. The UI does not display conflict warnings or a sorted priority list. Extraction and duplicate detection still depend on model output; see the implementation plan for verification scope and unresolved requirements.
+
+## Example files
+
+The `test_files/` folder contains ready-to-use example documents in PDF, DOCX, TXT and Markdown formats. Upload them through **Upload** to try task extraction, calendar views and source details. Some examples contain multiple tasks, assignment subtasks, estimated dates or deadlines marked TBA. Uploading the same content in different formats also demonstrates duplicate grouping.
+
+These files are development examples, separate from the planned formal evaluation dataset. A task without a confirmed date is expected to appear under **No confirmed deadline**.

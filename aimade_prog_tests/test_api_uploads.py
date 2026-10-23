@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+from starlette.datastructures import UploadFile
 
 from app.main import app
 
@@ -75,3 +76,26 @@ def test_get_missing_text_returns_404():
     with TestClient(app) as client:
         response = client.get("/api/uploads/does-not-exist/text")
         assert response.status_code == 404
+
+
+def test_oversized_upload_is_read_only_up_to_limit(monkeypatch):
+    from app.config import get_settings
+
+    monkeypatch.setenv("MAX_UPLOAD_MB", "1")
+    get_settings.cache_clear()
+    original_read = UploadFile.read
+    read_sizes = []
+
+    async def track_read(self, size=-1):
+        read_sizes.append(size)
+        return await original_read(self, size)
+
+    monkeypatch.setattr(UploadFile, "read", track_read)
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/uploads", files={"files": ("large.txt", b"x" * (2 * 1024 * 1024), "text/plain")},
+        )
+        assert response.status_code == 200
+        assert "too large" in response.json()["items"][0]["error"]
+        assert client.get("/api/state").json()["uploads"] == {}
+    assert read_sizes == [1024 * 1024 + 1]

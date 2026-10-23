@@ -30,6 +30,7 @@ from app.services.extractor import extract_upload
 from app.services.parsers import ALLOWED_EXTENSIONS, ParseError, parse_upload
 from app.storage import (
     StorageError,
+    claim_extractions,
     create_upload,
     ensure_storage,
     get_text,
@@ -109,7 +110,6 @@ async def upload_documents(
     for file in files:
         filename = file.filename or "upload"
         ext = Path(filename).suffix.lower()
-        data = await file.read()
 
         if ext not in ALLOWED_EXTENSIONS:
             items.append(
@@ -120,6 +120,8 @@ async def upload_documents(
             )
             continue
 
+        # 只读到上限加一字节即可判定超限，避免整个大文件进入内存。
+        data = await file.read(max_bytes + 1)
         if len(data) > max_bytes:
             items.append(
                 UploadItemResult(
@@ -208,10 +210,9 @@ def start_extractions(
                 status_code=404,
                 detail=f"Upload not found: {', '.join(missing)}",
             )
-        upload_ids = payload.upload_ids
+        upload_ids = list(dict.fromkeys(payload.upload_ids))
 
-    for upload_id in upload_ids:
-        set_extraction(upload_id, ExtractionStatus.running)
+    for upload_id in claim_extractions(upload_ids):
         background_tasks.add_task(extract_upload, upload_id)
 
     return ExtractionStartResponse(upload_ids=upload_ids)

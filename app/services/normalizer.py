@@ -111,7 +111,7 @@ def normalize_tasks(
 
 
 _SUBTASK_TITLE_RE = re.compile(
-    r"(?:^|[-–—:|]\s*|\b)(?:task|part|question|q|step|requirement|exercise)\s*[A-Za-z0-9]",
+    r"(?:^|[-–—:|]\s*|\b)(?:task|part|question|q|step|requirement|exercise)\s*(?:[A-Za-z]|[0-9]+)\b",
     flags=re.IGNORECASE,
 )
 _SUBTASK_KEY_RE = re.compile(
@@ -355,7 +355,8 @@ def _dedupe(tasks: list[ExtractedTask]) -> list[ExtractedTask]:
 
 
 def _normalize_title(title: str) -> str:
-    return re.sub(r"[^a-z0-9]+", " ", title.lower()).strip()
+    # 非拉丁标题不能被清空，否则同日的不同任务会共用去重键。
+    return re.sub(r"[\W_]+", " ", title.lower()).strip()
 
 
 def _date_key(task: ExtractedTask) -> str:
