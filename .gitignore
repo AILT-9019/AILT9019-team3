@@ -7,6 +7,18 @@ apikey.env
 # Local submission materials
 /midterm_sources/
 
+# Local test workspace
+/aimade_prog_tests/
+
+# Local test fixtures
+/test_files/
+
+# Editor settings
+.vscode/
+
+# Local build artifacts
+/release/
+
 # Runtime data
 data/
 
