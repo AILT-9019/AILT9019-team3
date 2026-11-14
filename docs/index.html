@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CourseBrief — Turn course documents into a clear academic calendar</title>
+<meta name="description" content="CourseBrief extracts academic tasks and deadlines from course documents and shows them in a month calendar and a week view, with source quotes attached.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body id="top">
+
+<header class="site-header">
+  <div class="wrap nav">
+    <a class="brand" href="#top" aria-label="CourseBrief home">
+      <span class="mark">CB</span>
+      <span>CourseBrief</span>
+    </a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#problem">Problem</a>
+      <a href="#features">Features</a>
+      <a href="#missing">Missing dates</a>
+      <a href="#how">How it works</a>
+      <a href="#evaluation">Evaluation</a>
+    </nav>
+    <a class="btn btn-ghost" href="https://github.com/chankwankiu/AILT9019">GitHub</a>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero wrap">
+    <div class="hero-copy">
+      <p class="eyebrow">AILT9019 · AI Literacy II</p>
+      <h1>Turn course documents into a calendar you can actually use.</h1>
+      <p class="lede">
+        Upload a syllabus, assignment brief, or announcement. CourseBrief extracts the tasks,
+        normalizes deadlines, and shows them in a month calendar and a week view — with the source quote attached.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="https://youtu.be/REPLACE_DEMO">Watch the demo</a>
+        <a class="btn btn-ghost" href="https://github.com/chankwankiu/AILT9019">View the code</a>
+      </div>
+      <ul class="chips" aria-label="Project summary">
+        <li>8 documents</li>
+        <li>32 annotated tasks</li>
+        <li>32/32 matched</li>
+        <li>Local-first</li>
+      </ul>
+    </div>
+    <figure class="hero-shot">
+      <img src="assets/02-calendar.png" width="1368" height="1292" alt="CourseBrief month calendar with tasks from several courses">
+      <figcaption>A whole month at a glance. Click a date to open its week.</figcaption>
+    </figure>
+  </section>
+
+  <section class="section wrap" id="problem">
+    <div class="section-head">
+      <p class="eyebrow">The problem</p>
+      <h2>Deadlines are scattered across documents</h2>
+    </div>
+    <div class="two-col">
+      <p class="big">
+        Important dates live in PDFs, DOCX files, announcements, and pasted text. Students rebuild the
+        same list every week, and one missed line can cost a grade.
+      </p>
+      <div class="problem-list">
+        <div><strong>For students</strong> <span>One local place to see what is due, without connecting a university account.</span></div>
+        <div><strong>For the demo</strong> <span>Synthetic course documents and public assignment handouts — no real student data.</span></div>
+        <div><strong>Check before you trust</strong> <span>Every task keeps its source, so a deadline can be checked against the original document.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section wrap" id="features">
+    <div class="section-head">
+      <p class="eyebrow">Key features</p>
+      <h2>What it does</h2>
+    </div>
+    <div class="feature-rows">
+      <article class="feature-row">
+        <figure class="shot"><img src="assets/01-upload.png" width="2482" height="1396" alt="Upload dialog with PDF, DOCX, TXT, and Markdown support" loading="lazy"></figure>
+        <div class="feature-copy">
+          <span class="feature-num">01</span>
+          <h3>Upload or paste</h3>
+          <p>PDF, DOCX, TXT, Markdown, or pasted text. One document can contain multiple tasks.</p>
+        </div>
+      </article>
+      <article class="feature-row reverse">
+        <figure class="shot"><img src="assets/03-week.png" width="1369" height="521" alt="Week view with task cards and priority badges" loading="lazy"></figure>
+        <div class="feature-copy">
+          <span class="feature-num">02</span>
+          <h3>Month and week views</h3>
+          <p>See a whole month at a glance, then zoom into one week. Task cards keep their priority badges and a consistent order.</p>
+        </div>
+      </article>
+      <article class="feature-row">
+        <figure class="shot"><img src="assets/04-source.png" width="2520" height="1396" alt="Task details with the source quote and an Open full text button" loading="lazy"></figure>
+        <div class="feature-copy">
+          <span class="feature-num">03</span>
+          <h3>Source-first</h3>
+          <p>Every task keeps its source quote, the original filename, and the full extracted text.</p>
+        </div>
+      </article>
+      <article class="feature-row reverse">
+        <figure class="shot"><img src="assets/06-duplicate.png" width="842" height="740" alt="One task with sources from several uploaded files" loading="lazy"></figure>
+        <div class="feature-copy">
+          <span class="feature-num">04</span>
+          <h3>Duplicate-aware</h3>
+          <p>When the same task appears in more than one upload, it is shown once, with every source file still available.</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section wrap" id="missing">
+    <div class="section-head">
+      <p class="eyebrow">Boundary case</p>
+      <h2>When the date is missing</h2>
+    </div>
+    <div class="missing-grid">
+      <div>
+        <p class="big">
+          CourseBrief does not invent a deadline. Tasks with a TBA date, no date, or a date that needs
+          review stay visible in a separate <strong>No confirmed deadline</strong> section.
+        </p>
+        <ul class="tick-list">
+          <li><strong>Deadline TBA</strong> — the document says the date will be announced later.</li>
+          <li><strong>No date provided</strong> — there is a task but no date in the document.</li>
+          <li><strong>Date needs review</strong> — the extracted date could not be confirmed.</li>
+          <li>Undated tasks can be deleted after a second confirmation; the uploaded source is kept.</li>
+        </ul>
+        <p class="note">For an undated task, the date shown in the calendar is the import date, not a deadline.</p>
+      </div>
+      <figure class="shot panel">
+        <img src="assets/08-delete-confirm.png" width="2520" height="980" alt="Delete confirmation for an undated task, with the import-date note visible" loading="lazy">
+        <figcaption>The source stays in <code>data/</code> after a task is deleted.</figcaption>
+      </figure>
+    </div>
+    <figure class="strip">
+      <a class="zoom" href="assets/05-undated.png" target="_blank" rel="noopener"><img src="assets/05-undated.png" width="1188" height="125" alt="No confirmed deadline section with Deadline TBA and No date provided labels" loading="lazy"></a>
+      <figcaption class="tap-hint">Tap the image to view it full size.</figcaption>
+    </figure>
+  </section>
+
+  <section class="section wrap" id="how">
+    <div class="section-head">
+      <p class="eyebrow">How it works</p>
+      <h2>One local pipeline</h2>
+    </div>
+    <figure class="arch">
+      <a class="zoom" href="assets/architecture.png" target="_blank" rel="noopener"><img src="assets/architecture.png" width="3200" height="800" alt="Pipeline: upload or paste, parse, extract, normalize, store locally, view" loading="lazy"></a>
+      <figcaption class="tap-hint">Tap the image to view it full size.</figcaption>
+    </figure>
+    <div class="three-col">
+      <div><strong>Parsed locally</strong> <span>PDF text layers, DOCX paragraphs and tables, plain-text files in common encodings, and Markdown text with its section headings.</span></div>
+      <div><strong>Chunked extraction</strong> <span>Up to 16,000 characters per chunk, with the start of the document and earlier tasks as context.</span></div>
+      <div><strong>Stored locally</strong> <span>JSON state, extracted text, and original files stay under <code>data/</code> on your machine.</span></div>
+    </div>
+  </section>
+
+  <section class="section wrap" id="evaluation">
+    <div class="section-head">
+      <p class="eyebrow">Evaluation</p>
+      <h2>Measured on a fixed set</h2>
+    </div>
+    <div class="eval-grid">
+      <div>
+        <p class="big">
+          8 course documents, 32 annotated tasks, plus 3 ambiguity observation documents.
+          The latest live run matched every task and passed all four metric checks.
+        </p>
+        <div class="metric-grid">
+          <div class="metric"><span>Extraction precision</span> <strong>100.0%</strong> <small>pass line 90%</small></div>
+          <div class="metric"><span>Extraction recall</span> <strong>100.0%</strong> <small>pass line 90%</small></div>
+          <div class="metric"><span>Deadline accuracy</span> <strong>100.0%</strong> <small>pass line 90%</small></div>
+          <div class="metric"><span>Course association</span> <strong>100.0%</strong> <small>pass line 95%</small></div>
+        </div>
+        <p class="note">
+          Run with <code>deepseek-chat</code>, prompt v2. All three ambiguity cases were left as
+          <code>unknown</code> rather than given a fabricated date. Two scored documents are real
+          COMP2119 assignment handouts; the rest are synthetic course documents.
+        </p>
+      </div>
+      <figure class="shot eval-shot">
+        <a class="zoom" href="assets/07-evaluation.png" target="_blank" rel="noopener"><img src="assets/07-evaluation.png" width="2880" height="2766" alt="Evaluation report showing 32 of 32 tasks matched and all metrics at 100%" loading="lazy"></a>
+        <figcaption class="tap-hint">Tap the image to view it full size.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section wrap" id="privacy">
+    <div class="section-head">
+      <p class="eyebrow">Privacy and ethics</p>
+      <h2>Local by default</h2>
+    </div>
+    <div class="privacy-grid">
+      <div><strong>Files stay local</strong> <span>Uploads, extracted text, and tasks live under <code>data/</code> on your machine.</span></div>
+      <div><strong>LLM endpoint</strong> <span>Live extraction sends document text to the endpoint you configure. Nothing else leaves the app.</span></div>
+      <div><strong>No university account</strong> <span>CourseBrief does not access Moodle, submit work, or contact instructors.</span></div>
+      <div><strong>No real student data</strong> <span>The demo uses synthetic documents and public assignment handouts.</span></div>
+    </div>
+  </section>
+
+  <section class="section wrap" id="team">
+    <div class="section-head">
+      <p class="eyebrow">Team</p>
+      <h2>Built for AILT9019</h2>
+    </div>
+    <div class="team-grid">
+      <div class="member"><strong>Member 1</strong></div>
+      <div class="member"><strong>Member 2</strong></div>
+      <div class="member"><strong>Member 3</strong></div>
+      <div class="member"><strong>Member 4</strong></div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-row">
+    <div>
+      <strong>CourseBrief</strong>
+      <span>AILT9019 · AI Literacy II · 2026</span>
+    </div>
+    <div class="footer-links">
+      <a href="https://youtu.be/REPLACE_DEMO">Demo</a>
+      <a href="https://youtu.be/REPLACE_PRESENTATION">Presentation</a>
+      <a href="https://github.com/chankwankiu/AILT9019">GitHub</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
