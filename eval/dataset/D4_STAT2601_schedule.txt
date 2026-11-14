@@ -1,0 +1,15 @@
+STAT2601 Statistics - Course Schedule
+Course: STAT2601 - Statistics
+Semester 1, 2026/27
+
+This schedule describes the assessments for STAT2601 Statistics in Semester 1, 2026/27. The course covers descriptive statistics, probability and regression.
+
+Assessment schedule
+
+1. Homework 1 - due 22 September 2026. The homework covers descriptive statistics.
+
+2. Homework 2 - due 20 October 2026. The homework covers probability distributions.
+
+3. Data Analysis Report - due 17 November 2026. The report analyses a provided dataset.
+
+4. Midterm Test - due 10 November 2026. The test covers the first half of the course.

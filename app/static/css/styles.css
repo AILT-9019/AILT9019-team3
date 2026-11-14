@@ -96,6 +96,13 @@ button { cursor: pointer; }
 
 .button-small { padding: 5px 9px; font-size: 12px; }
 
+.button-danger {
+  color: var(--danger);
+  border-color: #e7c4c4;
+}
+
+.button-danger:hover { background: var(--danger-soft); }
+
 .icon-button {
   width: 34px;
   height: 34px;
@@ -436,6 +443,16 @@ button { cursor: pointer; }
 }
 .popover-content::-webkit-scrollbar-track { background: transparent; }
 
+.popover-note {
+  margin: 0 0 8px;
+  padding: 7px 8px;
+  border-radius: 6px;
+  background: var(--info-soft);
+  color: var(--info);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .popover-head {
   display: flex;
   align-items: flex-start;
@@ -508,6 +525,8 @@ button { cursor: pointer; }
   padding-top: 6px;
   border-top: 1px solid var(--line);
 }
+
+.popover-actions .button-danger { margin-left: auto; }
 
 .source-block {
   margin-top: 8px;

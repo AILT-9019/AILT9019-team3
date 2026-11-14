@@ -1,18 +1,6 @@
 # Local secrets
 apikey.env
 
-# Local collaboration instructions
-/要求.md
-
-# Local submission materials
-/midterm_sources/
-
-# Local test workspace
-/aimade_prog_tests/
-
-# Local test fixtures
-/test_files/
-
 # Editor settings
 .vscode/
 

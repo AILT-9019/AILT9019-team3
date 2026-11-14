@@ -55,3 +55,7 @@ export async function startExtractions(uploadIds) {
 export async function getUploadText(uploadId) {
   return (await request(`/api/uploads/${encodeURIComponent(uploadId)}/text`)).text();
 }
+
+export async function deleteTask(taskId) {
+  await request(`/api/tasks/${encodeURIComponent(taskId)}`, { method: "DELETE" });
+}

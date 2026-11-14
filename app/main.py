@@ -11,6 +11,7 @@ from fastapi import (
     Form,
     HTTPException,
     Request,
+    Response,
     UploadFile,
 )
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
@@ -32,6 +33,7 @@ from app.storage import (
     StorageError,
     claim_extractions,
     create_upload,
+    delete_task,
     ensure_storage,
     get_text,
     read_state,
@@ -90,6 +92,13 @@ def upload_text(upload_id: str) -> str:
         return get_text(upload_id)
     except StorageError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.delete("/api/tasks/{task_id}", status_code=204, response_class=Response)
+def remove_task(task_id: str) -> Response:
+    if not delete_task(task_id):
+        raise HTTPException(status_code=404, detail=f"Task not found: {task_id}")
+    return Response(status_code=204)
 
 
 @app.post("/api/uploads", response_model=UploadBatchResponse)

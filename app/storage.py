@@ -258,6 +258,33 @@ def replace_tasks(upload_id: str, tasks: list[TaskRecord]) -> None:
         _atomic_write_state(state)
 
 
+def delete_task(task_id: str) -> bool:
+    """删除一条抽取任务；上传原文和原文件保留，重复分组同步调整。"""
+    with _LOCK:
+        ensure_storage()
+        state = _read_state_unlocked()
+        if not any(task.id == task_id for task in state.tasks):
+            return False
+        state.tasks = [task for task in state.tasks if task.id != task_id]
+
+        groups: dict[str, DuplicateGroup] = {}
+        for primary, group in state.duplicate_groups.items():
+            if task_id not in group.task_ids:
+                groups[primary] = group
+                continue
+            remaining = [item for item in group.task_ids if item != task_id]
+            if len(remaining) < 2:
+                continue
+            new_primary = primary if primary in remaining else remaining[0]
+            groups[new_primary] = DuplicateGroup(
+                task_ids=remaining,
+                source=group.source,
+            )
+        state.duplicate_groups = groups
+        _atomic_write_state(state)
+        return True
+
+
 def set_duplicate_groups(
     groups: dict[str, DuplicateGroup], *, expected_tasks: list[TaskRecord] | None = None
 ) -> bool:

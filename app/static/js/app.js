@@ -1,4 +1,5 @@
 import {
+  deleteTask,
   getHealth,
   getState,
   getUploadText,
@@ -69,6 +70,11 @@ const els = {
   textModalTitle: $("#text-modal-title"),
   textModalBody: $("#text-modal-body"),
   textModalClose: $("#text-modal-close"),
+  deleteModal: $("#delete-modal"),
+  deleteModalTitle: $("#delete-modal-title"),
+  deleteModalMessage: $("#delete-modal-message"),
+  deleteCancel: $("#delete-cancel"),
+  deleteConfirm: $("#delete-confirm"),
 };
 
 let state = { schema_version: 1, uploads: {}, tasks: [], duplicate_groups: {} };
@@ -79,6 +85,7 @@ let popoverPinned = false;
 let popoverTarget = null;
 let popoverTaskId = null;
 let popoverTaskSnapshot = null;
+let deleteTargetTask = null;
 let hideTimer = null;
 let statusTimer = null;
 let toastTimer = null;
@@ -409,6 +416,12 @@ function undatedReason(task) {
   return strings.dateMissing;
 }
 
+function importedDateLabel(task) {
+  const upload = state.uploads[task.upload_id];
+  if (!upload?.uploaded_at) return "";
+  return formatShortDate(upload.uploaded_at.slice(0, 10));
+}
+
 function showDatePopover(date, tasks, target) {
   if (popoverPinned) return;
   if (tasks.length === 0) {
@@ -436,9 +449,15 @@ function showTaskPopover(task, target, pin) {
   if (popoverPinned && !pin) return;
   const priority = priorityFor(task);
   const sourceTasks = task.sourceTasks || [task];
+  const isUndated = task.date_confidence === "unknown";
+  const imported = isUndated ? importedDateLabel(task) : "";
+  const importedNote = imported
+    ? strings.importedOnNote.replace("{date}", imported)
+    : strings.importedDateNote;
 
   const html = `
     <div class="popover-content">
+      ${isUndated ? `<div class="popover-note">${escapeHtml(importedNote)}</div>` : ""}
       <div class="popover-head">
         <div class="popover-title">${escapeHtml(task.title)}</div>
         <span class="priority-badge priority-${priority.bucket.toLowerCase()}">${priority.bucket}</span>
@@ -463,9 +482,7 @@ function showTaskPopover(task, target, pin) {
       <div class="popover-meta" title="${escapeHtml(task.course_name)}">${strings.due}: ${escapeHtml(
         taskDueLabel(task),
       )} · ${escapeHtml(task.course_name)}</div>
-      ${task.date_confidence === "unknown"
-        ? `<div class="popover-warning">${escapeHtml(undatedReason(task))}. ${strings.uploadDateOnly}</div>`
-        : ""}
+      ${isUndated ? `<div class="popover-warning">${escapeHtml(undatedReason(task))}</div>` : ""}
       ${
         task.ambiguity_reason
           ? `<div class="popover-warning">${escapeHtml(task.ambiguity_reason)}</div>`
@@ -488,6 +505,7 @@ function showTaskPopover(task, target, pin) {
     </div>
     <div class="popover-actions">
       <button class="button button-small" type="button" data-action="source" aria-expanded="false">${strings.showSource}</button>
+      ${isUndated ? `<button class="button button-small button-danger" type="button" data-action="delete">${strings.delete}</button>` : ""}
     </div>
   `;
 
@@ -509,6 +527,10 @@ function showTaskPopover(task, target, pin) {
     clearTimeout(hideTimer);
     content.scrollTop = expanded ? content.scrollHeight : 0;
     positionPopover();
+  });
+
+  els.popover.querySelector('[data-action="delete"]')?.addEventListener("click", () => {
+    requestDeleteTask(task);
   });
 
   for (const fullTextButton of els.popover.querySelectorAll("[data-upload-id]")) {
@@ -617,6 +639,43 @@ function closeAllModals() {
   closeModal(els.uploadModal);
   closeModal(els.pasteModal);
   closeModal(els.textModal);
+  closeDeleteModal();
+}
+
+function closeDeleteModal() {
+  closeModal(els.deleteModal);
+  deleteTargetTask = null;
+}
+
+function requestDeleteTask(task) {
+  deleteTargetTask = task;
+  els.deleteModalTitle.textContent = strings.deleteTitle;
+  els.deleteModalMessage.textContent = `${task.title} — ${strings.deleteMessage}`;
+  openModal(els.deleteModal);
+  els.deleteCancel.focus();
+}
+
+async function confirmDeleteTask() {
+  if (!deleteTargetTask) return;
+  const taskId = deleteTargetTask.id;
+  setButtonBusy(els.deleteConfirm, true);
+  try {
+    await deleteTask(taskId);
+  } catch (error) {
+    setButtonBusy(els.deleteConfirm, false);
+    showToast(`${strings.deleteFailed}: ${error.message}`, "error");
+    return;
+  }
+  setButtonBusy(els.deleteConfirm, false);
+  closeDeleteModal();
+  hidePopover();
+  try {
+    await refreshState();
+  } catch (error) {
+    showToast(`${strings.requestFailed}: ${error.message}`, "error");
+    return;
+  }
+  showToast(strings.deleteDone, "ok");
 }
 
 function setStatus(text, kind = "") {
@@ -819,13 +878,17 @@ function bindEvents() {
   els.uploadCancel.addEventListener("click", () => closeModal(els.uploadModal));
   els.pasteCancel.addEventListener("click", () => closeModal(els.pasteModal));
   els.textModalClose.addEventListener("click", () => closeModal(els.textModal));
+  els.deleteCancel.addEventListener("click", closeDeleteModal);
+  els.deleteConfirm.addEventListener("click", confirmDeleteTask);
   els.uploadSubmit.addEventListener("click", handleUpload);
   els.pasteSubmit.addEventListener("click", handlePaste);
   els.pasteText.addEventListener("input", updatePasteCount);
 
-  for (const modal of [els.uploadModal, els.pasteModal, els.textModal]) {
+  for (const modal of [els.uploadModal, els.pasteModal, els.textModal, els.deleteModal]) {
     modal.addEventListener("click", (event) => {
-      if (event.target === modal) closeModal(modal);
+      if (event.target !== modal) return;
+      if (modal === els.deleteModal) closeDeleteModal();
+      else closeModal(modal);
     });
   }
 
@@ -866,6 +929,8 @@ async function boot() {
   els.pasteSubmit.textContent = strings.pasteSubmit;
   els.uploadCancel.textContent = strings.cancel;
   els.pasteCancel.textContent = strings.cancel;
+  els.deleteCancel.textContent = strings.cancel;
+  els.deleteConfirm.textContent = strings.delete;
   els.textModalClose.textContent = strings.close;
   els.uploadModalTitle.textContent = strings.uploadTitle;
   els.pasteModalTitle.textContent = strings.pasteTitle;

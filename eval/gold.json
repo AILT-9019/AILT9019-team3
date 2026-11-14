@@ -1,0 +1,604 @@
+{
+  "version": "eval-v2",
+  "frozen_at": "2026-11-15",
+  "changelog": [
+    "Initial frozen synthetic evaluation set",
+    "Replaced the synthetic COMP3230 syllabus and deadline-change documents with the real COMP2119 PA1 and WA3 handouts",
+    "Replaced the synthetic Game House observation document with the real COMP3234/ELEC3443 handout"
+  ],
+  "documents": [
+    {
+      "id": "D1",
+      "path": "dataset/D1_COMP2119_pa1.pdf",
+      "course": "COMP2119",
+      "format": "pdf",
+      "task_count": 1,
+      "sha256": "18aba51e66e1b176d8624e9f838185faaba211c7e54819c09127f791be4c4b49"
+    },
+    {
+      "id": "D2",
+      "path": "dataset/D2_AILT9019_project_brief.docx",
+      "course": "AILT9019",
+      "format": "docx",
+      "task_count": 5,
+      "sha256": "d5012231aa18b21b13c380e10f7c17e965a28b1cf55a6189296bc5d80d2c96a8"
+    },
+    {
+      "id": "D3",
+      "path": "dataset/D3_ECON1210_announcement.pdf",
+      "course": "ECON1210",
+      "format": "pdf",
+      "task_count": 6,
+      "sha256": "e0203fa87ccfe064cb5cb4c912df2c54cf67fcf7fd35c87835179d2ce62be2fd"
+    },
+    {
+      "id": "D4",
+      "path": "dataset/D4_STAT2601_schedule.txt",
+      "course": "STAT2601",
+      "format": "txt",
+      "task_count": 4,
+      "sha256": "4e10f947c3fab3636a97f8d514e1e896aa3a8b745903ba50d637ae508a9e35af"
+    },
+    {
+      "id": "D5",
+      "path": "dataset/D5_COMP2119_wa3.pdf",
+      "course": "COMP2119",
+      "format": "pdf",
+      "task_count": 1,
+      "sha256": "fb2c1d069480a34b222770a981d93ee1f1d828078b9288714951e4151e12c92d"
+    },
+    {
+      "id": "D6",
+      "path": "dataset/D6_AILT9019_final_project.pdf",
+      "course": "AILT9019",
+      "format": "pdf",
+      "task_count": 5,
+      "sha256": "cbd07646c19304bfd15c543eea00261a1e01f89e4b62c6290b7dd149cb35eb39"
+    },
+    {
+      "id": "D7",
+      "path": "dataset/D7_ECON1210_reading_exam.docx",
+      "course": "ECON1210",
+      "format": "docx",
+      "task_count": 5,
+      "sha256": "97d08523df600f49be617b7c782c365436098680401f0cc0a12e09a375835162"
+    },
+    {
+      "id": "D8",
+      "path": "dataset/D8_STAT2601_reading_week.pdf",
+      "course": "STAT2601",
+      "format": "pdf",
+      "task_count": 5,
+      "sha256": "d5bbfe9314b26138bf72256758f9cf7fcb118bc691f632cdad31fd30971b10ae"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "D1-T1",
+      "doc_id": "D1",
+      "course_name": "COMP2119",
+      "title": "Programming Assignment 1",
+      "description": "Students implement three C++ tasks about course prerequisite graphs: the lowest-difficulty study path, the number of courses made unreachable, and a course ordering number.",
+      "task_type": "assignment",
+      "date_confidence": "exact",
+      "due_date": "2026-11-04",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [
+        {
+          "label": "Task A",
+          "description": "Find the lowest total difficulty of a study path that makes course s eligible."
+        },
+        {
+          "label": "Task B",
+          "description": "Count courses that become unreachable when course s cannot be passed."
+        },
+        {
+          "label": "Task C",
+          "description": "Find the ordering number of course s in a tie-broken topological order."
+        }
+      ],
+      "source_quote": "COMP2119A/B/C Introduction to Data Structures and Algorithms\nProgramming Assignment 1 - Course Selection Challenge\nDue Date: Nov 4, 2026 7:00pm"
+    },
+    {
+      "id": "D2-T1",
+      "doc_id": "D2",
+      "course_name": "AILT9019",
+      "title": "Project Proposal",
+      "description": "The team submits the revised project proposal.",
+      "task_type": "project",
+      "date_confidence": "exact",
+      "due_date": "2026-10-09",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "1. Project Proposal - due 9 October 2026. The team submits the revised project proposal."
+    },
+    {
+      "id": "D2-T2",
+      "doc_id": "D2",
+      "course_name": "AILT9019",
+      "title": "Midterm Status Sheet",
+      "description": "The one-page status sheet records progress and the plan.",
+      "task_type": "other",
+      "date_confidence": "exact",
+      "due_date": "2026-10-26",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "2. Midterm Status Sheet - due 26 October 2026. The one-page status sheet records progress and the plan."
+    },
+    {
+      "id": "D2-T3",
+      "doc_id": "D2",
+      "course_name": "AILT9019",
+      "title": "Midterm Demo Video",
+      "description": "The video shows one real input and the resulting output.",
+      "task_type": "other",
+      "date_confidence": "exact",
+      "due_date": "2026-10-23",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "3. Midterm Demo Video - due 23 October 2026. The video shows one real input and the resulting output."
+    },
+    {
+      "id": "D2-T4",
+      "doc_id": "D2",
+      "course_name": "AILT9019",
+      "title": "Week 10 Progress Update",
+      "description": "The update reports the Week 10 milestone.",
+      "task_type": "assignment",
+      "date_confidence": "exact",
+      "due_date": "2026-11-04",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "4. Week 10 Progress Update - due 4 November 2026. The update reports the Week 10 milestone."
+    },
+    {
+      "id": "D2-T5",
+      "doc_id": "D2",
+      "course_name": "AILT9019",
+      "title": "Final Report Draft",
+      "description": "The draft covers the approach, results and limitations.",
+      "task_type": "project",
+      "date_confidence": "exact",
+      "due_date": "2026-11-13",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "5. Final Report Draft - due 13 November 2026. The draft covers the approach, results and limitations."
+    },
+    {
+      "id": "D3-T1",
+      "doc_id": "D3",
+      "course_name": "ECON1210",
+      "title": "Problem Set 1",
+      "description": "The problem set covers supply and demand.",
+      "task_type": "assignment",
+      "date_confidence": "exact",
+      "due_date": "2026-09-18",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "1. Problem Set 1 - due 18 September 2026. The problem set covers supply and demand."
+    },
+    {
+      "id": "D3-T2",
+      "doc_id": "D3",
+      "course_name": "ECON1210",
+      "title": "Problem Set 2",
+      "description": "The problem set covers market structures.",
+      "task_type": "assignment",
+      "date_confidence": "exact",
+      "due_date": "2026-10-09",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "2. Problem Set 2 - due 9 October 2026. The problem set covers market structures."
+    },
+    {
+      "id": "D3-T3",
+      "doc_id": "D3",
+      "course_name": "ECON1210",
+      "title": "Quiz 1",
+      "description": "The quiz covers the first four lectures.",
+      "task_type": "quiz",
+      "date_confidence": "exact",
+      "due_date": "2026-10-16",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "3. Quiz 1 - due 16 October 2026. The quiz covers the first four lectures."
+    },
+    {
+      "id": "D3-T4",
+      "doc_id": "D3",
+      "course_name": "ECON1210",
+      "title": "Essay Outline",
+      "description": "The outline presents the argument for the final essay.",
+      "task_type": "assignment",
+      "date_confidence": "exact",
+      "due_date": "2026-11-06",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "4. Essay Outline - due 6 November 2026. The outline presents the argument for the final essay."
+    },
+    {
+      "id": "D3-T5",
+      "doc_id": "D3",
+      "course_name": "ECON1210",
+      "title": "Final Essay",
+      "description": "The essay analyses a current economic policy issue.",
+      "task_type": "assignment",
+      "date_confidence": "exact",
+      "due_date": "2026-11-27",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "5. Final Essay - due 27 November 2026. The essay analyses a current economic policy issue."
+    },
+    {
+      "id": "D3-T6",
+      "doc_id": "D3",
+      "course_name": "ECON1210",
+      "title": "Final Examination",
+      "description": "The final examination covers the whole course.",
+      "task_type": "exam",
+      "date_confidence": "exact",
+      "due_date": "2026-12-05",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "6. Final Examination - due 5 December 2026. The final examination covers the whole course."
+    },
+    {
+      "id": "D4-T1",
+      "doc_id": "D4",
+      "course_name": "STAT2601",
+      "title": "Homework 1",
+      "description": "The homework covers descriptive statistics.",
+      "task_type": "assignment",
+      "date_confidence": "exact",
+      "due_date": "2026-09-22",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "1. Homework 1 - due 22 September 2026. The homework covers descriptive statistics."
+    },
+    {
+      "id": "D4-T2",
+      "doc_id": "D4",
+      "course_name": "STAT2601",
+      "title": "Homework 2",
+      "description": "The homework covers probability distributions.",
+      "task_type": "assignment",
+      "date_confidence": "exact",
+      "due_date": "2026-10-20",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "2. Homework 2 - due 20 October 2026. The homework covers probability distributions."
+    },
+    {
+      "id": "D4-T3",
+      "doc_id": "D4",
+      "course_name": "STAT2601",
+      "title": "Data Analysis Report",
+      "description": "The report analyses a provided dataset.",
+      "task_type": "project",
+      "date_confidence": "exact",
+      "due_date": "2026-11-17",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "3. Data Analysis Report - due 17 November 2026. The report analyses a provided dataset."
+    },
+    {
+      "id": "D4-T4",
+      "doc_id": "D4",
+      "course_name": "STAT2601",
+      "title": "Midterm Test",
+      "description": "The test covers the first half of the course.",
+      "task_type": "exam",
+      "date_confidence": "exact",
+      "due_date": "2026-11-10",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "4. Midterm Test - due 10 November 2026. The test covers the first half of the course."
+    },
+    {
+      "id": "D5-T1",
+      "doc_id": "D5",
+      "course_name": "COMP2119",
+      "title": "Written Assignment 3",
+      "description": "A written assignment on trees, binary search trees, AVL trees, bitonic search and a robust QuickSort.",
+      "task_type": "assignment",
+      "date_confidence": "exact",
+      "due_date": "2026-11-25",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [
+        {
+          "label": "Question 1",
+          "description": "Trees: missing child count, reconstruction, traversals and leftmost-child/right-sibling representation."
+        },
+        {
+          "label": "Question 2",
+          "description": "Binary search tree and AVL tree operations, deletions, insertions and rotations."
+        },
+        {
+          "label": "Question 3",
+          "description": "Find the peak of a bitonic array and search it in O(log n) time."
+        },
+        {
+          "label": "Question 4",
+          "description": "Analyse QuickSort and design RobustQuickSort with a worst-case O(n log n) bound."
+        }
+      ],
+      "source_quote": "COMP2119 Introduction to Data Structures and Algorithms\nWritten Assignment 3 - Trees, Searching & Sorting Algorithms\nDue date: Nov 25, 2026, 7:00pm"
+    },
+    {
+      "id": "D6-T1",
+      "doc_id": "D6",
+      "course_name": "AILT9019",
+      "title": "Project Proposal Revision",
+      "description": "The revision responds to the proposal review.",
+      "task_type": "project",
+      "date_confidence": "exact",
+      "due_date": "2026-10-16",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "1. Project Proposal Revision - due 16 October 2026. The revision responds to the proposal review."
+    },
+    {
+      "id": "D6-T2",
+      "doc_id": "D6",
+      "course_name": "AILT9019",
+      "title": "Cross-team Peer Review",
+      "description": "Each team reviews another team's project gallery.",
+      "task_type": "other",
+      "date_confidence": "exact",
+      "due_date": "2026-11-27",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "2. Cross-team Peer Review - due 27 November 2026. Each team reviews another team's project gallery."
+    },
+    {
+      "id": "D6-T3",
+      "doc_id": "D6",
+      "course_name": "AILT9019",
+      "title": "Final Report",
+      "description": "The report covers the final system and evaluation.",
+      "task_type": "project",
+      "date_confidence": "exact",
+      "due_date": "2026-11-20",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "3. Final Report - due 20 November 2026. The report covers the final system and evaluation."
+    },
+    {
+      "id": "D6-T4",
+      "doc_id": "D6",
+      "course_name": "AILT9019",
+      "title": "Project Presentation",
+      "description": "The team presents the final project.",
+      "task_type": "presentation",
+      "date_confidence": "exact",
+      "due_date": "2026-11-24",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "4. Project Presentation - due 24 November 2026. The team presents the final project."
+    },
+    {
+      "id": "D6-T5",
+      "doc_id": "D6",
+      "course_name": "AILT9019",
+      "title": "Gallery Poster",
+      "description": "The poster summarises the project for the gallery.",
+      "task_type": "other",
+      "date_confidence": "exact",
+      "due_date": "2026-11-30",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "5. Gallery Poster - due 30 November 2026. The poster summarises the project for the gallery."
+    },
+    {
+      "id": "D7-T1",
+      "doc_id": "D7",
+      "course_name": "ECON1210",
+      "title": "Reading Response 1",
+      "description": "The response discusses the assigned chapter on scarcity.",
+      "task_type": "reading",
+      "date_confidence": "exact",
+      "due_date": "2026-09-30",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "1. Reading Response 1 - due 30 September 2026. The response discusses the assigned chapter on scarcity."
+    },
+    {
+      "id": "D7-T2",
+      "doc_id": "D7",
+      "course_name": "ECON1210",
+      "title": "Reading Response 2",
+      "description": "The response discusses the assigned chapter on trade.",
+      "task_type": "reading",
+      "date_confidence": "exact",
+      "due_date": "2026-10-21",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "2. Reading Response 2 - due 21 October 2026. The response discusses the assigned chapter on trade."
+    },
+    {
+      "id": "D7-T3",
+      "doc_id": "D7",
+      "course_name": "ECON1210",
+      "title": "Group Presentation",
+      "description": "The group presents a market analysis.",
+      "task_type": "presentation",
+      "date_confidence": "exact",
+      "due_date": "2026-11-11",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "3. Group Presentation - due 11 November 2026. The group presents a market analysis."
+    },
+    {
+      "id": "D7-T4",
+      "doc_id": "D7",
+      "course_name": "ECON1210",
+      "title": "Term Paper",
+      "description": "The paper applies an economic model to a policy case.",
+      "task_type": "assignment",
+      "date_confidence": "exact",
+      "due_date": "2026-11-25",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "4. Term Paper - due 25 November 2026. The paper applies an economic model to a policy case."
+    },
+    {
+      "id": "D7-T5",
+      "doc_id": "D7",
+      "course_name": "ECON1210",
+      "title": "Weekly Reading Quiz",
+      "description": "The quiz covers the final reading week.",
+      "task_type": "quiz",
+      "date_confidence": "exact",
+      "due_date": "2026-12-01",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "5. Weekly Reading Quiz - due 1 December 2026. The quiz covers the final reading week."
+    },
+    {
+      "id": "D8-T1",
+      "doc_id": "D8",
+      "course_name": "STAT2601",
+      "title": "Lab Exercise 1",
+      "description": "The exercise introduces statistical software.",
+      "task_type": "assignment",
+      "date_confidence": "exact",
+      "due_date": "2026-09-29",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "1. Lab Exercise 1 - due 29 September 2026. The exercise introduces statistical software."
+    },
+    {
+      "id": "D8-T2",
+      "doc_id": "D8",
+      "course_name": "STAT2601",
+      "title": "Lab Exercise 2",
+      "description": "The exercise covers hypothesis testing.",
+      "task_type": "assignment",
+      "date_confidence": "exact",
+      "due_date": "2026-10-27",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "2. Lab Exercise 2 - due 27 October 2026. The exercise covers hypothesis testing."
+    },
+    {
+      "id": "D8-T3",
+      "doc_id": "D8",
+      "course_name": "STAT2601",
+      "title": "Regression Project",
+      "description": "The project fits and evaluates a regression model.",
+      "task_type": "project",
+      "date_confidence": "exact",
+      "due_date": "2026-11-19",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "3. Regression Project - due 19 November 2026. The project fits and evaluates a regression model."
+    },
+    {
+      "id": "D8-T4",
+      "doc_id": "D8",
+      "course_name": "STAT2601",
+      "title": "Reading Week Assignment",
+      "description": "The assignment accompanies the reading week material.",
+      "task_type": "assignment",
+      "date_confidence": "exact",
+      "due_date": "2026-11-06",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "4. Reading Week Assignment - due 6 November 2026. The assignment accompanies the reading week material."
+    },
+    {
+      "id": "D8-T5",
+      "doc_id": "D8",
+      "course_name": "STAT2601",
+      "title": "Quiz 3",
+      "description": "The quiz covers regression and model evaluation.",
+      "task_type": "quiz",
+      "date_confidence": "exact",
+      "due_date": "2026-12-03",
+      "due_range_start": null,
+      "due_range_end": null,
+      "subtasks": [],
+      "source_quote": "5. Quiz 3 - due 3 December 2026. The quiz covers regression and model evaluation."
+    }
+  ],
+  "observation_documents": [
+    {
+      "id": "OBS1",
+      "path": "dataset/observations/OBS1_ECON1210_quiz_tba.txt",
+      "course": "ECON1210",
+      "format": "txt",
+      "task_count": 1,
+      "sha256": "94ff5c00d0e3ea2a11181ca5863bcb7961e5d61c738d8c918f91cc8599299d05"
+    },
+    {
+      "id": "OBS2",
+      "path": "dataset/observations/OBS2_STAT2601_reading_week_report.docx",
+      "course": "STAT2601",
+      "format": "docx",
+      "task_count": 1,
+      "sha256": "5f779bb9f993e0f1b356f8eae5e710623f32424c3a68ae3124e4f5bd27c6e43e"
+    },
+    {
+      "id": "OBS3",
+      "path": "dataset/observations/OBS3_COMP3234_game_house.pdf",
+      "course": "COMP3234",
+      "format": "pdf",
+      "task_count": 1,
+      "sha256": "2d64a3044c526e09da37c00446349c170f837bc1a8b7855157ab805f3dfb702d"
+    }
+  ],
+  "ambiguity_observations": [
+    {
+      "id": "OBS-1",
+      "doc_id": "OBS1",
+      "title": "Quiz 2",
+      "reason": "The announcement says the date will be announced later.",
+      "expected_date_confidence": "unknown"
+    },
+    {
+      "id": "OBS-2",
+      "doc_id": "OBS2",
+      "title": "Final Project Report",
+      "reason": "The document refers to the end of reading week and says the date is not yet confirmed.",
+      "expected_date_confidence": "unknown"
+    },
+    {
+      "id": "OBS-3",
+      "doc_id": "OBS3",
+      "title": "A Simple Game House Application",
+      "reason": "The handout gives no submission date; it only says the zip must be submitted before the deadline.",
+      "expected_date_confidence": "unknown"
+    }
+  ]
+}
